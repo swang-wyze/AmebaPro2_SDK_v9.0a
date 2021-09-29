@@ -1,0 +1,28 @@
+{
+  "Disable": "N",
+  "IsLib": "N",
+
+  "TargetDep": [
+    "rtl8735b"
+  ],
+
+  "BuildModeDep": [
+    "All",
+    "Ram"
+  ],
+
+  "localIncludePath": [
+  ],
+
+  "extraIncludes": [
+  ],
+
+  "extraCCFlags": [
+  ],
+  
+  "excludePath": [
+  ],
+
+  "excludeSource": [
+  ]  
+}

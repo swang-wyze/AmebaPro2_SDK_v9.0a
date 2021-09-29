@@ -1,0 +1,37 @@
+{
+  "Disable": "N",
+  "IsLib": "N",
+
+  "TargetDep": [
+    "rtl8735b"
+  ],
+
+  "SecureDep": [
+    "NonSecure",
+    "Ignore"
+  ],
+
+  "BuildModeDep": [
+    "All",
+    "Rom"
+  ],
+
+  "localIncludePath": [
+    ".",
+    "../../",
+    "../../../../../"
+  ],
+
+  "extraIncludes": [
+  ],
+
+  "extraCCFlags": [
+    "-DROM_REGION=1"
+  ],
+  
+  "excludePath": [
+  ],
+
+  "excludeSource": [
+  ]  
+}

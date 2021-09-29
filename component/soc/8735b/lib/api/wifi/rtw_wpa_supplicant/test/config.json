@@ -1,0 +1,27 @@
+{
+  "Disable": "Y",
+  "IsLib": "N",
+
+  "BuildModeDep": [
+    "Ram",
+    "All"
+  ],
+
+  "localIncludePath": [
+    ".",
+    "../../../",
+    "../src/"
+  ],
+
+  "extraIncludes": [
+  ],
+
+  "extraCCFlags": [
+  ],
+
+  "excludePath": [
+  ],
+
+  "excludeSource": [
+  ]
+}

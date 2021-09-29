@@ -1,0 +1,74 @@
+<02/24/2021 15:00 Raymond>
+Version : RTL8735B_VOE_0.0.0.1
+
+Modified Files:
+All
+
+Change Notes:
+	1. draft version release
+
+Verification Before Checked-In:
+	1. build all OK.
+	2. FPGA stream test Pass.
+
+Reviewer:
+	Raymond 
+--------------------------------------------------------------------------
+<04/01/2021 15:00 Raymond>
+Version : RTL8735B_VOE_0.0.0.2
+
+Modified Files:
+All
+
+Change Notes:
+	1. Added multi stream output
+	2. added JPEG format output support
+	3. added NV12 format output support
+	4. added RGB format output support
+	5. Added HEVC/H264 feature MaxQP/MinQP/GOP/ForceI/BPS paramter API
+
+Verification Before Checked-In:
+	1. Draft test (Pass).
+	2. Regression test (Ongoing).
+	3. ISP memoery leak (issue).
+	4. ISP reopen issue (issue).
+
+Test Command:
+	$8735b>vs 0 0 0 (channel 0 output HEVC/CIF)
+	$8735b>vs 1 2 1 (channel 1 output JPEG/QCIF) or	$8735b>vs 1 3 1 (channel 1 output NV12/QCIF)
+	$8735b>vs 4 4 1 (channel 4 output RGB/QCIF)
+	
+Reviewer:
+	Raymond 
+--------------------------------------------------------------------------
+<08/04/2021 15:00 Raymond>
+Version : RTL8735B_VOE_0.0.0.3
+Modified Files:
+All
+
+Change Notes:
+	1. Support multi sensor 
+	2. Added load voe.bin, sensor.bin
+	3. Added VOE error handling & debung message
+	4. Support reopen/restart flow 
+	5. support ROI map
+	6. support NN object frame on OSD
+	
+Verification Before Checked-In:
+	1. Draft test (Pass).
+
+Test Command:
+	$8735b>vs 0 0 5      (channel 0 output HEVC/FHD)
+	$8735b>vc 0 print 1  (open debug message)
+	$8735b>vc 0 mem      (show VOE memory usage)
+	$8735b>vc 0 buf      (show VOE video buffer information)
+	$8735b>vc 0 sensor 1 (select diff. sensor.bin)
+	$8735b>vc 0 stop 1   (stop channel 0)
+	$8735b>vc 0 start 1  (start channel 0)
+	$8735b>vc 0 stop 0   (close channel 0)
+	$8735b>vc 0 start 0  (open channel 0)
+	
+			
+Reviewer:
+	Raymond 
+
