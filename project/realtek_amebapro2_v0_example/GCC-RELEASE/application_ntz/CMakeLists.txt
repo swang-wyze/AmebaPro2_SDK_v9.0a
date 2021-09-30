@@ -348,6 +348,24 @@ list(
 	${prj_root}/src/sd/example_sd_hot_plug.c
 )
 
+#NN
+if(BUILD_VIPNN)
+#NN MODEL
+list(
+	APPEND app_ntz_sources
+	${prj_root}/src/test_model/model_yolov3t.c
+)
+#NN example
+list(
+	APPEND app_ntz_sources
+
+	${sdk_root}/component/media/mmfv2/module_array.c
+	${sdk_root}/component/media/mmfv2/module_vipnn.c
+	${sdk_root}/component/example/media_framework/mmf2_example_array_vipnn_init.c
+	${prj_root}/src/mmfv2_video_example/mmf2_video_example_vipnn_rtsp_init.c
+)
+endif()
+
 #USER
 list(
     APPEND app_ntz_sources
@@ -428,7 +446,7 @@ list(
 	${sdk_root}/component/example/media_framework/mmf2_example_aac_array_rtsp_init.c
 	${sdk_root}/component/example/media_framework/mmf2_example_pcmu_array_rtsp_init.c
 	${sdk_root}/component/example/media_framework/mmf2_example_rtp_aad_init.c
-    	${sdk_root}/component/example/media_framework/mmf2_example_i2s_audio_init.c
+	${sdk_root}/component/example/media_framework/mmf2_example_i2s_audio_init.c
     ${sdk_root}/component/example/media_framework/mmf2_example_2way_audio_opus_init.c
     ${sdk_root}/component/example/media_framework/mmf2_example_a_opus_init.c
     ${sdk_root}/component/example/media_framework/mmf2_example_rtp_opusd_init.c
@@ -591,7 +609,23 @@ target_include_directories(
 	${sdk_root}/component/os/freertos/${freertos}/Source/portable/GCC/ARM_CM33_NTZ/non_secure
 	${prj_root}/src/mmfv2_video_example/
 	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/video/voe_bin/
-	
+
+	#${prj_root}/src/nn
+	${prj_root}/src/nn_verify
+	${prj_root}/src/nn_verify/model_nbg
+	${prj_root}/src/test_model
+	${prj_root}/src/VIPLiteDrv/sdk/inc
+	${prj_root}/src
+
+	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn
+	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn/model_itp
+	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn/nn_api
+	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn/nn_postprocess
+	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn/nn_preprocess
+	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn/run_itp
+
+	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn/VIPLiteParser
+
 	${sdk_root}/component/media/mmfv2
 	${sdk_root}/component/media/rtp_codec
 	${sdk_root}/component/example/media_framework/inc
@@ -663,6 +697,13 @@ target_link_libraries(
 	websockets
 	srtp2
 	kvs_producer
+)
+endif()
+
+if(BUILD_VIPNN)	
+target_link_libraries(
+	${app_ntz} 
+	vipnn
 )
 endif()
 
