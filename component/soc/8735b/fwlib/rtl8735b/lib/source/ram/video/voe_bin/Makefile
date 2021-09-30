@@ -36,6 +36,7 @@ all:
 	#$(OBJCOPY) -I binary -O elf32-littlearm -B arm sensor.bin $(OBJCOPYDIR)/sensor.o;
 	$(OBJCOPY) -I binary -O elf32-littlearm -B arm sensor_gc2053.bin $(OBJCOPYDIR)/sensor_gc2053.o;
 	$(OBJCOPY) -I binary -O elf32-littlearm -B arm sensor_fixp.bin $(OBJCOPYDIR)/sensor_fixp.o;
+	$(OBJCOPY) -I binary -O elf32-littlearm -B arm sensor_sc2310.bin $(OBJCOPYDIR)/sensor_sc2310.o;
 	$(OBJCOPY) -I binary -O elf32-littlearm -B arm iq.bin $(OBJCOPYDIR)/iq.o;
 
 	

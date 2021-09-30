@@ -6,6 +6,6 @@ _binary_iq_bin_start:
 _binary_iq_bin_end:
     .global _binary_iq_bin_size
     .align  4
-_binary_fixp_bin_size:
+_binary_iq_bin_size:
     .int    _binary_iq_bin_end - _binary_iq_bin_start
 	.end

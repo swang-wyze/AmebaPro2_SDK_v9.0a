@@ -50,6 +50,17 @@
 }; */
 
 
+#if VIDEO_RESOLUTION == VIDEO_VGA
+#define VIDEO_WIDTH	640
+#define VIDEO_HEIGHT	480
+#elif VIDEO_RESOLUTION == VIDEO_HD
+#define VIDEO_WIDTH	1280
+#define VIDEO_HEIGHT	720
+#elif VIDEO_RESOLUTION == VIDEO_FHD
+#define VIDEO_WIDTH	1920
+#define VIDEO_HEIGHT	1080
+#endif
+
 static mm_context_t *video_v1_ctx			= NULL;
 static mm_context_t *rtsp2_v1_ctx			= NULL;
 static mm_siso_t *siso_video_rtsp_v1			= NULL;
@@ -58,13 +69,13 @@ static video_params_t video_v1_params = {
 	.stream_id = VIDEO_CHANNEL,
 	.type = VIDEO_TYPE,
 	.resolution = VIDEO_RESOLUTION,
-	.width = video_res_w[VIDEO_RESOLUTION],
-	.height = video_res_h[VIDEO_RESOLUTION],
+	.width = VIDEO_WIDTH,
+	.height = VIDEO_HEIGHT,
 	.fps = VIDEO_FPS,
 	.gop = VIDEO_GOP,
 	.bps = VIDEO_BPS,
 	.rc_mode = VIDEO_RCMODE,
-	.use_static_addr = 0
+	.use_static_addr = 1
 };
 
 /* static video_params_t video_v3_params = {
@@ -102,6 +113,12 @@ static array_params_t h264usb_array_params = {
 
 void example_media_dual_uvcd_init(void)
 {
+	int voe_heap_size = video_voe_presetting(1, VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_BPS, 1,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0);
+
+	printf("\r\n voe heap size = %d\r\n", voe_heap_size);
 
 	uvc_format_ptr = (struct uvc_format *)malloc(sizeof(struct uvc_format));
 	memset(uvc_format_ptr, 0, sizeof(struct uvc_format));
@@ -137,37 +154,28 @@ void example_media_dual_uvcd_init(void)
 
 	printf("foramr %d height %d width %d\r\n", uvc_format_local->format, uvc_format_local->height, uvc_format_local->width);
 
-#if 0
-#if VIDEO_TYPE == VIDEO_NV12
-	video_v1_params.use_static_addr = 1;
-#endif
-
-#if VIDEO_TYPE == VIDEO_NV16
-	video_v1_params.use_static_addr = 1;
-#endif
-#endif
-
 	video_v1_ctx = mm_module_open(&video_module);
 	if (video_v1_ctx) {
-		mm_module_ctrl(video_v1_ctx, CMD_VIDEO_SET_VOE_HEAP, 32 * 1024 * 1024);
+		mm_module_ctrl(video_v1_ctx, CMD_VIDEO_SET_VOE_HEAP, voe_heap_size);
 		mm_module_ctrl(video_v1_ctx, CMD_VIDEO_SET_PARAMS, (int)&video_v1_params);
-		mm_module_ctrl(video_v1_ctx, MM_CMD_SET_QUEUE_LEN, 2);//Default 30
+		mm_module_ctrl(video_v1_ctx, MM_CMD_SET_QUEUE_LEN, 1);//Default 30
 		mm_module_ctrl(video_v1_ctx, MM_CMD_INIT_QUEUE_ITEMS, MMQI_FLAG_DYNAMIC);
 		mm_module_ctrl(video_v1_ctx, CMD_VIDEO_APPLY, VIDEO_CHANNEL);	// start channel 0
 	} else {
 		rt_printf("video open fail\n\r");
 		//goto mmf2_video_exmaple_v1_fail;
 	}
+	
 #if (VIDEO_TYPE == VIDEO_JPEG)
-	mm_module_ctrl(video_v1_ctx, CMD_VIDEO_SNAPSHOT, 2);
+	mm_module_ctrl(video_v1_ctx, CMD_VIDEO_SNAPSHOT, 0);
 #endif
 
 #if (VIDEO_TYPE == VIDEO_NV12)
-	mm_module_ctrl(video_v1_ctx, CMD_VIDEO_YUV, 2);
+	mm_module_ctrl(video_v1_ctx, CMD_VIDEO_YUV, 0);
 #endif
 
 #if (VIDEO_TYPE == VIDEO_NV16)
-	mm_module_ctrl(video_v1_ctx, CMD_VIDEO_YUV, 2);
+	mm_module_ctrl(video_v1_ctx, CMD_VIDEO_YUV, 0);
 #endif
 
 	siso_array_uvcd = siso_create();
@@ -181,6 +189,18 @@ void example_media_dual_uvcd_init(void)
 	}
 	rt_printf("siso_array_uvcd started\n\r");
 
+#if (VIDEO_TYPE == VIDEO_JPEG)
+	mm_module_ctrl(video_v1_ctx, CMD_VIDEO_SNAPSHOT, 2);
+#endif
+
+#if (VIDEO_TYPE == VIDEO_NV12)
+	mm_module_ctrl(video_v1_ctx, CMD_VIDEO_YUV, 2);
+#endif
+
+#if (VIDEO_TYPE == VIDEO_NV16)
+	mm_module_ctrl(video_v1_ctx, CMD_VIDEO_YUV, 2);
+#endif
+
 	while (1) {
 		rtw_down_sema(&uvc_format_ptr->uvcd_change_sema);
 
@@ -191,15 +211,12 @@ void example_media_dual_uvcd_init(void)
 			printf("change f:%d h:%d s:%d w:%d\r\n", uvc_format_ptr->format, uvc_format_ptr->height, uvc_format_ptr->state, uvc_format_ptr->width);
 			if (uvc_format_local->format == FORMAT_TYPE_MJPEG) {
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_SNAPSHOT, 0);
-				video_v1_params.use_static_addr = 0;
 			}
 			if (uvc_format_local->format == FORMAT_TYPE_YUY2) {
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_YUV, 0);
-				video_v1_params.use_static_addr = 0;
 			}
 			if (uvc_format_local->format == FORMAT_TYPE_NV12) {
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_YUV, 0);
-				video_v1_params.use_static_addr = 0;
 			}
 
 			if (uvc_format_ptr->format == FORMAT_TYPE_YUY2) {
@@ -208,7 +225,7 @@ void example_media_dual_uvcd_init(void)
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_STREAM_STOP, 0);
 				vTaskDelay(1000);
 				video_v1_params.type = VIDEO_NV16;
-				//video_v1_params.use_static_addr = 1;
+				video_v1_params.use_static_addr = 1;
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_SET_PARAMS, (int)&video_v1_params);
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_APPLY, VIDEO_CHANNEL);	// start channel 0
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_YUV, 2);
@@ -219,6 +236,7 @@ void example_media_dual_uvcd_init(void)
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_STREAM_STOP, 0);
 				vTaskDelay(1000);
 				video_v1_params.type = VIDEO_NV12;
+				video_v1_params.use_static_addr = 1;
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_SET_PARAMS, (int)&video_v1_params);
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_APPLY, VIDEO_CHANNEL);	// start channel 0
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_YUV, 2);
@@ -239,6 +257,7 @@ void example_media_dual_uvcd_init(void)
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_STREAM_STOP, 0);
 				vTaskDelay(1000);
 				video_v1_params.type = VIDEO_JPEG;
+				video_v1_params.use_static_addr = 0;
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_SET_PARAMS, (int)&video_v1_params);
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_APPLY, VIDEO_CHANNEL);	// start channel 0
 				mm_module_ctrl(video_v1_ctx, CMD_VIDEO_SNAPSHOT, 2);

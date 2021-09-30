@@ -39,24 +39,12 @@ hal_video_adapter_t *v_adapter;
 
 char *fmt_table[] = {"hevc", "h264", "jpeg", "nv12", "rgb", "nv16", "hevc", "h264"};
 char *paramter_table[] = {
-	// "-l 1 --gopSize=1 -U1 -u0 -q-1",	// HEVC
-	// "-l 1 --gopSize=1 -U1 -u0 -q-1",	// H264
-	// "-g 1 -b 1 -q 7",							// JPEG
-	// "",											// NV12
-	// "",											// RGB
-	// "",									// NV16
-	"-l 1 --gopSize=1 -U1 -u0 -q-1 --dbg 1",	// HEVC
-	"-l 1 --gopSize=1 -U1 -u0 -q-1 --dbg 1",	// H264
-	"-g 1 -b 1 -q 7 --dbg 1",			// JPEG
-	"--dbg 1",							// NV12
-	"--dbg 1",							// RGB
-	"--dbg 1",							// NV16
-	// "-l 1 --gopSize=1 -U1 -u0 -q-1 --roiMapDeltaQpBlockUnit 0 --roiMapDeltaQpEnable 1 --dbg 1",	// HEVC
-	// "-l 1 --gopSize=1 -U1 -u0 -q-1 --roiMapDeltaQpBlockUnit 0 --roiMapDeltaQpEnable 1 --dbg 1",	// H264
-	// "-g 1 -b 1 -q 7 --dbg 1",			// JPEG
-	// "--dbg 1",							// NV12
-	// "--dbg 1",							// RGB
-	// "--dbg 1",							// NV16
+	"-l 1 --gopSize=1 -U1 -u0 -q-1 --roiMapDeltaQpBlockUnit 0 --roiMapDeltaQpEnable 1 --dbg 1 --obj 1",	// HEVC
+	"-l 1 --gopSize=1 -U1 -u0 -q-1 --roiMapDeltaQpBlockUnit 0 --roiMapDeltaQpEnable 1 --dbg 1 --obj 1",	// H264
+	"-g 1 -b 1 -q 7 --dbg 1 --obj 1",			// JPEG
+	"--dbg 1 --obj 1",							// NV12
+	"--dbg 1 --obj 1",							// RGB
+	"--dbg 1 --obj 1",							// NV16
 };
 
 int framecnt = 0;
@@ -65,6 +53,7 @@ int incb = 0;
 int ch1framecnt = 0;
 int ch2framecnt = 0;
 int rgb_lock = 0;
+int isp_ch_buf_num[5] = {2,2,2,2,1};
 
 void video_frame_complete_cb(void *param1, void  *param2, uint32_t arg)
 {
@@ -143,7 +132,11 @@ void video_frame_complete_cb(void *param1, void  *param2, uint32_t arg)
 			tempaddr = (char *)malloc(enc2out->enc_len);
 			if (tempaddr == NULL) {
 				printf("malloc fail = %d\r\n", enc2out->enc_len);
+				if ((enc2out->codec & (CODEC_NV12 | CODEC_RGB | CODEC_NV16)) != 0) {
+					hal_video_isp_buf_release(enc2out->ch, enc2out->isp_addr);
+				} else {
 				hal_video_release(enc2out->ch, enc2out->enc_len);
+				}
 				goto show_log;
 			}
 		}
@@ -157,7 +150,6 @@ void video_frame_complete_cb(void *param1, void  *param2, uint32_t arg)
 			printf("\r\n have wrong channel addr=\r\n", enc2out->enc_addr);
 		}
 
-
 		if (enc2out->type == VCENC_INTRA_FRAME) {
 			printf("I frame = %d\r\n", enc2out->ch);
 		}
@@ -165,15 +157,15 @@ void video_frame_complete_cb(void *param1, void  *param2, uint32_t arg)
 		if (enc2out->ch == 0) {
 			ch1framecnt++;
 			if (ch1framecnt == 30) {
-				printf("\r\n ch1 frame=30 \r\n");
+				printf("\r\n ch1 1s frames \r\n");
 				ch1framecnt = 0;
 			}
 		}
 
 		if (enc2out->ch == 1) {
 			ch2framecnt++;
-			if (ch2framecnt == 30) {
-				printf("\r\n ch2 frame=30 \r\n");
+			if (ch2framecnt == 15) {
+				printf("\r\n ch2 1s frames \r\n");
 				ch2framecnt = 0;
 			}
 		}
@@ -224,6 +216,7 @@ void video_frame_complete_cb(void *param1, void  *param2, uint32_t arg)
 				} else {
 					output_item->data_addr = (char *)tempaddr;//malloc(enc2out->enc_len);
 					memcpy(output_item->data_addr, (char *)enc2out->isp_addr, enc2out->enc_len);
+					hal_video_isp_buf_release(enc2out->ch, enc2out->isp_addr);
 				}
 			}
 
@@ -236,6 +229,8 @@ void video_frame_complete_cb(void *param1, void  *param2, uint32_t arg)
 				//printf("\r\n xQueueSend fail \r\n");
 				if (enc2out->codec <= CODEC_JPEG) {
 					hal_video_release(enc2out->ch, enc2out->enc_len);
+				} else {
+					hal_video_isp_buf_release(enc2out->ch, enc2out->isp_addr);
 				}
 			}
 
@@ -248,8 +243,14 @@ void video_frame_complete_cb(void *param1, void  *param2, uint32_t arg)
 
 			if (enc2out->codec <= CODEC_JPEG) {
 				hal_video_release(enc2out->ch, enc2out->enc_len);
+			} else {
+				hal_video_isp_buf_release(enc2out->ch, enc2out->isp_addr);
+			}
 			}
 		}
+	
+	if (enc2out->codec >= CODEC_RGB) {
+		printf("yuv in 0x%x\r\n",enc2out->isp_addr);
 	}
 
 show_log:
@@ -322,8 +323,10 @@ show_log:
 	}
 
 	if (ctx->params.direct_output == 1) {
-		if (enc2out->codec & (CODEC_H264 | CODEC_HEVC)) {
+		if ((enc2out->codec & (CODEC_H264 | CODEC_HEVC)) != 0) {
 			hal_video_release(enc2out->ch, enc2out->enc_len);
+		} else if ((enc2out->codec & (CODEC_NV12 | CODEC_RGB | CODEC_NV16)) != 0) {
+			hal_video_isp_buf_release(enc2out->ch, enc2out->isp_addr);
 		}
 	}
 
@@ -426,17 +429,22 @@ int video_control(void *p, int cmd, int arg)
 		}
 	}
 	break;
+	case CMD_ISP_SET_RAWFMT: {
+		int ch = ctx->params.stream_id;
+		hal_video_isp_set_rawfmt(ch, arg);
+	}
+	break;
 	case CMD_VIDEO_SNAPSHOT_CB:
 		ctx->snapshot_cb = (int (*)(uint32_t, uint32_t))arg;
 		break;
 	case CMD_VIDEO_UPDATE:
 		break;
 	case CMD_VIDEO_SET_VOE_HEAP:
-		hal_video_set_voe(ctx->v_adp, arg, 1024);
+		hal_video_voe_open(ctx->v_adp, arg, 1024);
 		break;
 	case CMD_VIDEO_PRINT_INFO:
-		hal_video_mem(ctx->v_adp, 0);
-		hal_video_buf(ctx->v_adp, 0);
+		hal_video_mem_info(ctx->v_adp, 0);
+		hal_video_buf_info(ctx->v_adp, 0);
 		break;
 	case CMD_VIDEO_APPLY: {
 		int ch = arg;
@@ -461,6 +469,7 @@ int video_control(void *p, int cmd, int arg)
 		int out_buf_size = ctx->params.bps * 2;
 		//if(out_buf_size < out_rsvd_size)
 		//out_buf_size = out_rsvd_size + ctx->params.bps;
+	    printf("video w = %d, video h = %d\r\n",ctx->params.width, ctx->params.height);
 
 		memset(fps_cmd1, 0x0, 48);
 		memset(fps_cmd2, 0x0, 48);
@@ -514,21 +523,21 @@ int video_control(void *p, int cmd, int arg)
 		case 7:
 			codec = CODEC_H264 | CODEC_JPEG;
 			break;
-		case 8:
-			codec = CODEC_HEVC | CODEC_NV12;
-			break;
-		case 9:
-			codec = CODEC_HEVC | CODEC_JPEG | CODEC_NV12;
-			break;
-		case 10:
-			codec = CODEC_H264 | CODEC_JPEG | CODEC_NV12;
-			break;
-		case 11:
-			codec = CODEC_HEVC | CODEC_JPEG | CODEC_NV16;
-			break;
-		case 12:
-			codec = CODEC_H264 | CODEC_JPEG | CODEC_NV16;
-			break;
+		// case 8:
+			// codec = CODEC_HEVC | CODEC_NV12;
+			// break;
+		// case 9:
+			// codec = CODEC_HEVC | CODEC_JPEG | CODEC_NV12;
+			// break;
+		// case 10:
+			// codec = CODEC_H264 | CODEC_JPEG | CODEC_NV12;
+			// break;
+		// case 11:
+			// codec = CODEC_HEVC | CODEC_JPEG | CODEC_NV16;
+			// break;
+		// case 12:
+			// codec = CODEC_H264 | CODEC_JPEG | CODEC_NV16;
+			// break;
 		}
 
 		if ((codec & (CODEC_HEVC | CODEC_H264)) != 0) {
@@ -544,8 +553,7 @@ int video_control(void *p, int cmd, int arg)
 		}
 
 		if ((codec & CODEC_JPEG) != 0) {
-			//sprintf(fps_cmd2, "-n %d", fps);
-			sprintf(fps_cmd2, "-f %d -j %d", fps, fps);
+			sprintf(fps_cmd2, "-n %d", fps);
 			sprintf(cmd2, "%s %d %s -w %d -h %d --codecFormat %d %s -i isp"
 					, fmt_table[2]
 					, ch
@@ -565,8 +573,7 @@ int video_control(void *p, int cmd, int arg)
 			} else {
 				value = 5;
 			}
-			//sprintf(fps_cmd3, "-n %d", fps);
-			sprintf(fps_cmd3, "-f %d -j %d", fps, fps);
+			sprintf(fps_cmd3, "-j %d", fps);
 			sprintf(cmd3, "%s %d %s -w %d -h %d --codecFormat %d %s -i isp"
 					, fmt_table[value]
 					, ch
@@ -593,6 +600,8 @@ int video_control(void *p, int cmd, int arg)
 		if (hal_video_cb_register(ctx->v_adp, video_frame_complete_cb, (uint32_t)ctx, ch) != OK) {
 			printf("hal_video_cb_register fail\n");
 		}
+
+		hal_video_isp_buf_num(ctx->v_adp, ch, isp_ch_buf_num[ch]);
 
 		if (codec & (CODEC_HEVC | CODEC_H264 | CODEC_JPEG)) {
 			hal_video_enc_buf(ctx->v_adp, ch, out_buf_size, out_rsvd_size);
@@ -649,12 +658,26 @@ void *video_create(void *parent)
 			return NULL;
 		}
 		ctx->v_adp = v_adapter;
-		extern int _binary_iq_bin_start[];
-		hal_video_load_iq(ctx->v_adp, _binary_iq_bin_start);
+		if(USE_SENSOR == SENSOR_GC2053)
+		{
+			extern int _binary_iq_gc2053_bin_start[];
+			hal_video_load_iq(ctx->v_adp, _binary_iq_gc2053_bin_start);
 		extern int __voe_code_start__[];			// VOE DDR address
 		extern int _binary_sensor_gc2053_bin_start[];	// SENSOR binary address
 		hal_video_load_sensor((voe_cpy_t)memcpy, _binary_sensor_gc2053_bin_start, __voe_code_start__);
-
+		}
+		else if(USE_SENSOR == SENSOR_PS5258)
+		{
+			extern int _binary_iq_ps5258_bin_start[];
+			hal_video_load_iq(ctx->v_adp, _binary_iq_ps5258_bin_start);
+			extern int __voe_code_start__[];			// VOE DDR address
+			extern int _binary_sensor_ps5258_bin_start[];	// SENSOR binary address
+			hal_video_load_sensor((voe_cpy_t)memcpy, _binary_sensor_ps5258_bin_start, __voe_code_start__);	
+		}
+		else
+		{
+			printf("unkown sensor\r\n");
+		}		
 	} else {
 		ctx->v_adp = v_adapter;
 	}
@@ -695,12 +718,16 @@ void *video_voe_release_item(void *p, void *d, int length)
 	mm_queue_item_t *free_item = (mm_queue_item_t *)d;
 	int ch = ctx->params.stream_id;
 
-	if (free_item->type == AV_CODEC_ID_H264 || free_item->type == AV_CODEC_ID_H265) {
+	if (free_item->type == AV_CODEC_ID_H264 || free_item->type == AV_CODEC_ID_H265 || free_item->type == AV_CODEC_ID_MJPEG) {
 		hal_video_release(ch, length);
+	} else if (free_item->type == AV_CODEC_ID_RGB888 ){
+		printf("RGB release 0x%x\r\n",free_item->data_addr);
+		hal_video_isp_buf_release(ch, free_item->data_addr);
+		rgb_lock = 0;
 	}
-
-	if (free_item->type == AV_CODEC_ID_RGB888) {
-		hal_video_release(ch, length);
+	else{
+		printf("YUV release 0x%x\r\n",free_item->data_addr);
+		hal_video_isp_buf_release(ch, free_item->data_addr);
 		rgb_lock = 0;
 	}
 
@@ -708,22 +735,21 @@ void *video_voe_release_item(void *p, void *d, int length)
 	return NULL;
 }
 
-#define CMD_DATA_SIZE 65536
-
 int isp_ctrl_cmd(int argc, char **argv)
 {
 
 	int id;
 	int set_flag;
 	int set_value;
+	int read_value;
 	int ret;
 	if (argc >= 2) {
 		set_flag = atoi(argv[0]);
 		id = atoi(argv[1]);
 		if (set_flag == 0) {
-			ret = hal_video_isp_ctrl(id, set_flag, NULL);
-			if (ret != -1) {
-				printf("result 0x%08x %d \r\n", ret, ret);
+			ret = hal_video_isp_ctrl(id, set_flag, &read_value);
+			if ( ret == 0 ) {
+				printf("result 0x%08x %d \r\n", read_value, read_value);
 			} else {
 				printf("isp_ctrl get error\r\n");
 			}
@@ -732,7 +758,7 @@ int isp_ctrl_cmd(int argc, char **argv)
 			if (argc >= 3) {
 				set_value = atoi(argv[2]);
 
-				ret = hal_video_isp_ctrl(id, set_flag, set_value);
+				ret = hal_video_isp_ctrl(id, set_flag, &set_value);
 				if (ret != 0) {
 					printf("isp_ctrl set error\r\n");
 				}
@@ -747,10 +773,11 @@ int isp_ctrl_cmd(int argc, char **argv)
 	return OK;
 }
 
-int iq_tuning_cmd(int argc, char **argv)
-{
+int iq_tuning_cmd(int argc, char** argv) {
 	int ccmd;
-	char *cmd_data;
+	int vreg_len;
+	int vreg_offset;
+	uint32_t cmd_data;
 	struct isp_tuning_cmd *iq_cmd;
 	if (argc < 1) {	// usage
 		printf("iqtun cmd\r\n");
@@ -759,37 +786,68 @@ int iq_tuning_cmd(int argc, char **argv)
 		printf("      2 : rts_isp_tuning_get_statis\r\n");
 		printf("      3 : rts_isp_tuning_get_param\r\n");
 		printf("      4 : rts_isp_tuning_set_param\r\n");
+		printf("      5 offset lens : rts_isp_tuning_read_vreg \r\n");
+		printf("      6 offset lens value1 value2: rts_isp_tuning_write_vreg\r\n");
 		return NOK;
 	}
 	ccmd = atoi(argv[0]);
 
-	cmd_data = malloc(CMD_DATA_SIZE);
+
+
+
+
+	cmd_data = malloc(IQ_CMD_DATA_SIZE+32); // for cache alignment
 	if (cmd_data == NULL) {
 		printf("malloc cmd buf fail\r\n");
 		return NOK;
 	}
-	iq_cmd = (struct isp_tuning_cmd *)cmd_data;
+	iq_cmd = (struct isp_tuning_cmd *)((cmd_data+31)&~31); // for cache alignment
 
-	if (ccmd == 0) {
+	if(ccmd == 0) {
 		iq_cmd->addr = ISP_TUNING_IQ_TABLE_ALL;
-		hal_video_isp_tuning(VOE_ISP_TUNING_GET_IQ, iq_cmd);
-	} else if (ccmd == 1) {
+		hal_video_isp_tuning(VOE_ISP_TUNING_GET_IQ,iq_cmd);
+	} else if(ccmd == 1) {
 		iq_cmd->addr = ISP_TUNING_IQ_TABLE_ALL;
-		hal_video_isp_tuning(VOE_ISP_TUNING_SET_IQ, iq_cmd);
-	} else if (ccmd == 2) {
+		hal_video_isp_tuning(VOE_ISP_TUNING_SET_IQ,iq_cmd);
+	} else if(ccmd == 2) {
 		iq_cmd->addr = ISP_TUNING_STATIS_ALL;
-		hal_video_isp_tuning(VOE_ISP_TUNING_GET_STATIS, iq_cmd);
-	} else if (ccmd == 3) {
+		hal_video_isp_tuning(VOE_ISP_TUNING_GET_STATIS,iq_cmd);
+	} else if(ccmd == 3) {
 		iq_cmd->addr = ISP_TUNING_PARAM_ALL;
-		hal_video_isp_tuning(VOE_ISP_TUNING_GET_PARAM, iq_cmd);
-	} else if (ccmd == 4) {
+		hal_video_isp_tuning(VOE_ISP_TUNING_GET_PARAM,iq_cmd);
+	} else if(ccmd == 4) {
 		iq_cmd->addr = ISP_TUNING_PARAM_ALL;
-		hal_video_isp_tuning(VOE_ISP_TUNING_SET_PARAM, iq_cmd);
+		hal_video_isp_tuning(VOE_ISP_TUNING_SET_PARAM,iq_cmd);
+	} else if(ccmd == 5) {
+
+		iq_cmd->addr = atoi(argv[1]);
+		iq_cmd->len = atoi(argv[2]);
+		hal_video_isp_tuning(VOE_ISP_TUNING_READ_VREG,iq_cmd);
+		uint32_t *r_data = (uint32_t *)iq_cmd->data;
+		for (int i=0; i<(iq_cmd->len/4); i++){
+			printf("vreg 0x%08x = 0x%08x \n", iq_cmd->addr + i*4, r_data[i]);
 	}
 
-	if (cmd_data) {
-		free(cmd_data);
+	} else if(ccmd == 6) {
+		if (argc < 4 ) {
+			printf("      6 offset lens value1 [value2]: rts_isp_tuning_write_vreg\r\n");
+		} else {
+			iq_cmd->addr = atoi(argv[1]);
+			iq_cmd->len = atoi(argv[2]);
+
+			uint32_t *w_data = (uint32_t *)iq_cmd->data;
+			w_data[0] = atoi(argv[3]);
+			if (argc >4) {
+				for (int i=0; i<(argc-4); i++){
+					w_data[i+1] = atoi(argv[4+i]);
+				}
+			}
+			hal_video_isp_tuning(VOE_ISP_TUNING_WRITE_VREG,iq_cmd);
+		}
 	}
+
+	if (cmd_data)
+		free(cmd_data);
 	return OK;
 }
 

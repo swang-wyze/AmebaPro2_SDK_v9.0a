@@ -40,6 +40,17 @@
 #define VIDEO_CODEC AV_CODEC_ID_H264
 #endif
 
+#if V1_RESOLUTION == VIDEO_VGA
+#define V1_WIDTH	640
+#define V1_HEIGHT	480
+#elif V1_RESOLUTION == VIDEO_HD
+#define V1_WIDTH	1280
+#define V1_HEIGHT	720
+#elif V1_RESOLUTION == VIDEO_FHD
+#define V1_WIDTH	1920
+#define V1_HEIGHT	1080
+#endif
+
 static mm_context_t *video_v1_ctx			= NULL;
 static mm_context_t *rtsp2_v1_ctx			= NULL;
 static mm_context_t *audio_ctx				= NULL;
@@ -57,8 +68,8 @@ static video_params_t video_v1_params = {
 	.stream_id = V1_CHANNEL,
 	.type = VIDEO_TYPE,
 	.resolution = V1_RESOLUTION,
-	.width = video_res_w[V1_RESOLUTION],
-	.height = video_res_h[V1_RESOLUTION],
+	.width = V1_WIDTH,
+	.height = V1_HEIGHT,
 	.bps = V1_BPS,
 	.fps = V1_FPS,
 	.gop = V1_GOP,
@@ -153,10 +164,10 @@ void doorbell_ring(void)
 
 void mmf2_video_example_2way_audio_pcmu_doorbell_init(void)
 {
-	int voe_heap_size = video_voe_presetting(1, V1_RESOLUTION, V1_BPS, 0,
-						0, NULL, NULL,
-						0, NULL, NULL,
-						0, NULL);
+	int voe_heap_size = video_voe_presetting(1, V1_WIDTH, V1_HEIGHT, V1_BPS, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0);
 
 	printf("\r\n voe heap size = %d\r\n", voe_heap_size);
 

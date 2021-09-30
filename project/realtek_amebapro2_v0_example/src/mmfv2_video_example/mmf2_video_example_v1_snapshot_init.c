@@ -36,6 +36,17 @@
 #define SHAPSHOT_TYPE VIDEO_H264_JPEG
 #endif
 
+#if V1_RESOLUTION == VIDEO_VGA
+#define V1_WIDTH	640
+#define V1_HEIGHT	480
+#elif V1_RESOLUTION == VIDEO_HD
+#define V1_WIDTH	1280
+#define V1_HEIGHT	720
+#elif V1_RESOLUTION == VIDEO_FHD
+#define V1_WIDTH	1920
+#define V1_HEIGHT	1080
+#endif
+
 static mm_context_t *video_v1_ctx			= NULL;
 static mm_context_t *rtsp2_v1_ctx			= NULL;
 static mm_siso_t *siso_video_rtsp_v1			= NULL;
@@ -44,8 +55,8 @@ static video_params_t video_v1_params = {
 	.stream_id = V1_CHANNEL,
 	.type = SHAPSHOT_TYPE,
 	.resolution = V1_RESOLUTION,
-	.width = video_res_w[V1_RESOLUTION],
-	.height = video_res_h[V1_RESOLUTION],
+	.width = V1_WIDTH,
+	.height = V1_HEIGHT,
 	.bps = V1_BPS,
 	.fps = V1_FPS,
 	.gop = V1_GOP,
@@ -83,10 +94,10 @@ int v1_snapshot_cb(uint32_t jpeg_addr, uint32_t jpeg_len)
 
 void mmf2_video_example_v1_shapshot_init(void)
 {
-	int voe_heap_size = video_voe_presetting(1, V1_RESOLUTION, V1_BPS, 1,
-						0, NULL, NULL,
-						0, NULL, NULL,
-						0, NULL);
+	int voe_heap_size = video_voe_presetting(1, V1_WIDTH, V1_HEIGHT, V1_BPS, 1,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0);
 
 	printf("\r\n voe heap size = %d\r\n", voe_heap_size);
 
@@ -97,6 +108,7 @@ void mmf2_video_example_v1_shapshot_init(void)
 		mm_module_ctrl(video_v1_ctx, MM_CMD_SET_QUEUE_LEN, 60);
 		mm_module_ctrl(video_v1_ctx, MM_CMD_INIT_QUEUE_ITEMS, MMQI_FLAG_DYNAMIC);
 		mm_module_ctrl(video_v1_ctx, CMD_VIDEO_APPLY, V1_CHANNEL);	// start channel 0
+		mm_module_ctrl(video_v1_ctx, CMD_VIDEO_SNAPSHOT, 0);
 	} else {
 		rt_printf("video open fail\n\r");
 		goto mmf2_video_exmaple_v1_shapshot_fail;

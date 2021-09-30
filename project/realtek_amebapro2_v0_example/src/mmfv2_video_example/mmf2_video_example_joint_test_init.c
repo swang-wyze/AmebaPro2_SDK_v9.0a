@@ -49,6 +49,28 @@
 
 #define RTSP4 0
 
+#if V1_RESOLUTION == VIDEO_VGA
+#define V1_WIDTH	640
+#define V1_HEIGHT	480
+#elif V1_RESOLUTION == VIDEO_HD
+#define V1_WIDTH	1280
+#define V1_HEIGHT	720
+#elif V1_RESOLUTION == VIDEO_FHD
+#define V1_WIDTH	1920
+#define V1_HEIGHT	1080
+#endif
+
+#if V2_RESOLUTION == VIDEO_VGA
+#define V2_WIDTH	640
+#define V2_HEIGHT	480
+#elif V2_RESOLUTION == VIDEO_HD
+#define V2_WIDTH	1280
+#define V2_HEIGHT	720
+#elif V2_RESOLUTION == VIDEO_FHD
+#define V2_WIDTH	1920
+#define V2_HEIGHT	1080
+#endif
+
 static mm_context_t *video_v1_ctx			= NULL;
 static mm_context_t *video_v2_ctx			= NULL;
 static mm_context_t *rtsp2_v1_ctx			= NULL;
@@ -69,8 +91,8 @@ static video_params_t video_v1_params = {
 	.stream_id = V1_CHANNEL,
 	.type = VIDEO_TYPE,
 	.resolution = V1_RESOLUTION,
-	.width = video_res_w[V1_RESOLUTION],
-	.height = video_res_h[V1_RESOLUTION],
+	.width = V1_WIDTH,
+	.height = V1_HEIGHT,
 	.bps = V1_BPS,
 	.fps = V1_FPS,
 	.gop = V1_GOP,
@@ -82,8 +104,8 @@ static video_params_t video_v2_params = {
 	.stream_id = V2_CHANNEL,
 	.type = VIDEO_TYPE,
 	.resolution = V2_RESOLUTION,
-	.width = video_res_w[V2_RESOLUTION],
-	.height = video_res_h[V2_RESOLUTION],
+	.width = V2_WIDTH,
+	.height = V2_HEIGHT,
 	.bps = V2_BPS,
 	.fps = V2_FPS,
 	.gop = V2_GOP,
@@ -158,10 +180,10 @@ static rtp_params_t rtp_aad_params = {
 
 void mmf2_video_example_joint_test_init(void)
 {
-	int voe_heap_size = video_voe_presetting(1, V1_RESOLUTION, V1_BPS, 0,
-						1, V2_RESOLUTION, V2_BPS,
-						0, NULL, NULL,
-						0, NULL);
+	int voe_heap_size = video_voe_presetting(1, V1_WIDTH, V1_HEIGHT, V1_BPS, 0,
+						1, V2_WIDTH, V2_HEIGHT, V2_BPS,
+						0, 0, 0, 0,
+						0, 0, 0);	
 
 	printf("\r\n voe heap size = %d\r\n", voe_heap_size);
 

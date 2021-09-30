@@ -20,9 +20,8 @@ MEMORY
 /* DDR memory */
 						/* Raymond  workaround for JIRA-537 issue 0x70000000 --> 0x70000040 */
 						  
-  DDR (rwx) 		    : ORIGIN = 0x70000040, LENGTH = 0x72E00000 - 0x70000040 /* 44MB */
-  /*DDR_NC (rwx)	        : ORIGIN = 0x72C00000, LENGTH = 0x72E00000 - 0x72C00000	  2MB */ 
-  VOE        (rwx)      : ORIGIN = 0x72E00000, LENGTH = 0x73000000 - 0x72E00000	/*  2MB */
+  VOE    (rwx)          : ORIGIN = 0x70000000, LENGTH = 0x70100000 - 0x70000000	/*  1MB */
+  DDR    (rwx) 		    : ORIGIN = 0x70100000, LENGTH = 0x73000000 - 0x70100000 /* 47MB */
   NN         (rwx)      : ORIGIN = 0x73000000, LENGTH = 0x74000000 - 0x73000000	/* 16MB */
   
   BTRACE (rx)          : ORIGIN = 0x00800000, LENGTH = 0x00C00000 - 0x00800000	/* Bluetooth Trace */

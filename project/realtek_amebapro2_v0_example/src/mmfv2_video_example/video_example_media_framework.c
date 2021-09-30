@@ -145,64 +145,105 @@ void video_example_media_framework(void)
 	}
 }
 
-int video_voe_presetting(int v1_enable, int v1_resolution, int v1_bps, int v1_shapshot,
-						 int v2_enable, int v2_resolution, int v2_bps,
-						 int v3_enable, int v3_resolution, int v3_bps,
-						 int v4_enable, int v4_resolution)
+extern int isp_ch_buf_num[5];
+#define ISP_COMMON_BUF 580*1024
+#define ENC_COMMON_BUF 580*1024
+#define SNAPSHOT_BUF   300*1024 
+
+int video_voe_presetting(int v1_enable, int v1_w, int v1_h, int v1_bps, int v1_shapshot,
+						 int v2_enable, int v2_w, int v2_h, int v2_bps,
+						 int v3_enable, int v3_w, int v3_h, int v3_bps,
+						 int v4_enable, int v4_w, int v4_h)
 {
 	int voe_heap_size = 0;
+	int v3dnr_w = 1920;
+	int v3dnr_h = 1080;
+	
+	if((v1_w > v3dnr_w) && v1_enable)
+	{
+		v3dnr_w = v1_w;
+		v3dnr_h = v1_h;
+	}
+	
+	if((v2_w > v3dnr_w) && v2_enable)
+	{
+		v3dnr_w = v2_w;
+		v3dnr_h = v2_h;
+	}
+	
+	if((v3_w > v3dnr_w) && v3_enable)
+	{
+		v3dnr_w = v3_w;
+		v3dnr_h = v3_h;
+	}
+	
+	if((v4_w > v3dnr_w) && v4_enable)
+	{
+		v3dnr_w = v4_w;
+		v3dnr_h = v4_h;
+	}
+	
 	//3dnr
-	voe_heap_size += ((1920 * 1080 * 3) / 2);
+	voe_heap_size += ((v3dnr_w * v3dnr_h * 3) / 2);
+	printf("3dnr = %d,%d,%d\r\n",v3dnr_w,v3dnr_h,voe_heap_size);
 
 	if (v1_enable) {
 		//ISP buffer
-		voe_heap_size += ((video_res_w[v1_resolution] * video_res_h[v1_resolution] * 3) / 2) * 3;
+		voe_heap_size += ((v1_w * v1_h * 3) / 2) * isp_ch_buf_num[0];
 		//ISP common
-		voe_heap_size += (580 * 1024);
+		voe_heap_size += ISP_COMMON_BUF;
 		//enc ref
-		voe_heap_size += ((video_res_w[v1_resolution] * video_res_h[v1_resolution] * 3) / 2) * 2;
+		voe_heap_size += ((v1_w * v1_h * 3) / 2) * 2;
 		//enc common
-		voe_heap_size += (580 * 1024);
+		voe_heap_size += ENC_COMMON_BUF;
 		//enc buffer
-		voe_heap_size += ((video_res_w[v1_resolution] * video_res_h[v1_resolution]) / 2 +  v1_bps * 2);
+		voe_heap_size += ((v1_w * v1_h) / 2 +  v1_bps * 2);
 		//shapshot
 		if (v1_shapshot) {
-			voe_heap_size += ((video_res_w[v1_resolution] * video_res_h[v1_resolution] * 3) / 2) + (300 * 1024);
+			voe_heap_size += ((v1_w * v1_h * 3) / 2) + SNAPSHOT_BUF;
 		}
 	}
 
+	printf("v1 = %d,%d,%d\r\n",v1_w,v1_h,voe_heap_size);
+
 	if (v2_enable) {
 		//ISP buffer
-		voe_heap_size += ((video_res_w[v2_resolution] * video_res_h[v2_resolution] * 3) / 2) * 3;
+		voe_heap_size += ((v2_w * v2_h * 3) / 2) * isp_ch_buf_num[1];
 		//ISP common
-		voe_heap_size += (580 * 1024);
+		voe_heap_size += ISP_COMMON_BUF;
 		//enc ref
-		voe_heap_size += ((video_res_w[v2_resolution] * video_res_h[v2_resolution] * 3) / 2) * 2;
+		voe_heap_size += ((v2_w * v2_h * 3) / 2) * 2;
 		//enc common
-		voe_heap_size += (580 * 1024);
+		voe_heap_size += ENC_COMMON_BUF;
 		//enc buffer
-		voe_heap_size += ((video_res_w[v2_resolution] * video_res_h[v2_resolution]) / 2 +  v2_bps * 2);
+		voe_heap_size += ((v2_w * v2_h) / 2 +  v2_bps * 2);
 	}
+
+	printf("v2 = %d,%d,%d\r\n",v2_w,v2_h,voe_heap_size);
 
 	if (v3_enable) {
 		//ISP buffer
-		voe_heap_size += ((video_res_w[v3_resolution] * video_res_h[v3_resolution] * 3) / 2) * 3;
+		voe_heap_size += ((v3_w * v3_h * 3) / 2) * isp_ch_buf_num[2];
 		//ISP common
-		voe_heap_size += (580 * 1024);
+		voe_heap_size += ISP_COMMON_BUF;
 		//enc ref
-		voe_heap_size += ((video_res_w[v3_resolution] * video_res_h[v3_resolution] * 3) / 2) * 2;
+		voe_heap_size += ((v3_w * v3_h * 3) / 2) * 2;
 		//enc common
-		voe_heap_size += (580 * 1024);
+		voe_heap_size += ENC_COMMON_BUF;
 		//enc buffer
-		voe_heap_size += ((video_res_w[v3_resolution] * video_res_h[v3_resolution]) / 2 +  v3_bps * 2);
+		voe_heap_size += ((v3_w * v3_h) / 2 +  v3_bps * 2);
 	}
+
+	printf("v3 = %d,%d,%d\r\n",v3_w,v3_h,voe_heap_size);
 
 	if (v4_enable) {
 		//ISP buffer
-		voe_heap_size += video_res_w[v4_resolution] * video_res_h[v4_resolution] * 3 * 3;
+		voe_heap_size += v4_w * v4_h * 3 * isp_ch_buf_num[4];
 		//ISP common
-		voe_heap_size += (580 * 1024);
+		voe_heap_size += ISP_COMMON_BUF;
 	}
+	
+	printf("v4 = %d,%d,%d\r\n",v4_w,v4_h,voe_heap_size);
 
 	return voe_heap_size;
 }

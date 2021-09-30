@@ -38,7 +38,8 @@
 #define CMD_VIDEO_SNAPSHOT          MM_MODULE_CMD(0x1a)
 #define CMD_VIDEO_SNAPSHOT_CB       MM_MODULE_CMD(0x1b)
 #define CMD_VIDEO_YUV               MM_MODULE_CMD(0x1c)
-#define CMD_VIDEO_PRINT_INFO        MM_MODULE_CMD(0x1d)
+#define CMD_ISP_SET_RAWFMT          MM_MODULE_CMD(0x1d)
+#define CMD_VIDEO_PRINT_INFO        MM_MODULE_CMD(0x1e)
 
 
 #define CMD_VIDEO_APPLY				MM_MODULE_CMD(0x20)  // apply setting

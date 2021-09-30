@@ -72,3 +72,62 @@ Test Command:
 Reviewer:
 	Raymond 
 
+--------------------------------------------------------------------------
+<09/05/2021 15:00 Raymond>
+Version : RTL8735B_VOE_0.4.0.0
+Modified Files:
+All
+
+Change Notes:
+	1. update release version.
+           ruls RTL8735B_VOE_A.B.C.D
+           A: software architecture modify
+           B: regular release/new feature
+           C: bug fix
+           D: rsvd
+        2. OSD feature implement
+        3. isp buffer release API
+        4. Added OSD/OBJ task on voe
+        5. added --osd, --obj set command
+        6. Added sensor SC2310
+        7. fixed printf issue
+        
+
+
+
+Reviewer:
+	Raymond 
+	
+--------------------------------------------------------------------------
+<09/14/2021 15:00 Raymond>
+Version : RTL8735B_VOE_0.4.0.3
+Modified Files:
+All
+
+Change Notes:
+	1. fixed reopen/restart fail issue
+	2. fixed YUV output fail issue
+	3. fixed channel 1 GOP fail issue
+	4. improve VOE FW stability
+	5. added debug message on VOE
+	6. modify hal_video_set_voe --> hal_video_voe_open 
+	7. add hal_video_voe_close 
+
+Reviewer:
+	Raymond 	
+--------------------------------------------------------------------------
+<09/22/2021 15:00 Raymond>
+Version : RTL8735B_VOE_0.4.0.4
+Modified Files:
+All
+
+Change Notes:
+	1. modify VOE code text address 0x72e00000 --> 0x70000000 	
+	2. reduce VOE default text code size 2MB --> 1MB
+	3. add hal_video_isp_tuning new cmd for vreg read/write: VOE_ISP_TUNING_READ_VREG, VOE_ISP_TUNING_WRITE_VREG
+	4. add hal_video_i2c_write/hal_video_i2c_read API for I2C rea/write
+	5. add osd API and flow
+    6. fixed VOE Usage fault/ no output stream issue
+    7. release flow form git TAG to git Branch
+Reviewer:
+	Raymond 		

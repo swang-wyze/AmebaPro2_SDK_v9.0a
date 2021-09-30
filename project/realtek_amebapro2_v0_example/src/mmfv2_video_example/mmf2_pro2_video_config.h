@@ -17,6 +17,17 @@ enum encode_type {
 	VIDEO_H264_JPEG
 };
 
+#define	VIDEO_QCIF  0
+#define	VIDEO_CIF   1
+#define	VIDEO_WVGA  2
+#define	VIDEO_VGA   3
+#define	VIDEO_D1    4
+#define	VIDEO_HD    5
+#define	VIDEO_FHD   6
+#define	VIDEO_3M    7
+#define	VIDEO_5M    8
+
+/*
 enum video_resolution {
 	VIDEO_QCIF = 0,
 	VIDEO_CIF,
@@ -29,7 +40,8 @@ enum video_resolution {
 	VIDEO_5M,
 };
 
-static const int video_res_w[8] = {
+
+static const int video_res_w[9] = {
 	176, //QCIF
 	352, // CIF
 	640, // WVGA
@@ -41,7 +53,7 @@ static const int video_res_w[8] = {
 	2592, // 5M
 };
 
-static const int video_res_h[8] = {
+static const int video_res_h[9] = {
 	144,  //QCIF
 	288,  // CIF
 	360,  // WVGA
@@ -52,5 +64,6 @@ static const int video_res_h[8] = {
 	1536, // 3M
 	1944, // 5M
 };
+*/
 
 #endif /* MMF2_PRO2_VIDEO_CONFIG_H */

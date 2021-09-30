@@ -70,7 +70,7 @@ static struct option jpeg_options[] = {
 	{"frameRateDenom", 'r', 1},
 	{"qpMin", 'E', 1},
 	{"qpMax", 'F', 1},
-	{"rcMode", 'V', 1 },
+//	{"rcMode", 'V', 1 }, // Ameba_pro2 non support JPEG rc
 	{"picQpDeltaRange", 'U', 1 },
 	{"fixedQP", 'O', 1},
 	{"voe", '0', 1},
@@ -287,6 +287,8 @@ static struct option options[] = {
 
 	/*HW write recon to DDR or not if it's pure I-frame encoding*/
 	{"writeReconToDDR", '0', 1},
+	{"osd", '0', 1},
+	{"obj", '0', 1},
 	{"voe", '0', 1},
 	{"dbg", '0', 1},
 
@@ -1267,7 +1269,7 @@ void default_parameter(commandLine_s *cml)
 	memset(cml, 0, sizeof(commandLine_s));
 	strcpy(cml->input, "input.yuv");
 //    strcpy(cml->output, "stream.hevc");
-	cml->CodecEnable = 0;
+	cml->CodecType = 0;
 
 	cml->firstPic   = 0;
 	cml->lastPic    = 0;
@@ -2499,7 +2501,12 @@ i32 parameter_enc_get(i32 argc, char **argv, commandLine_s *cml)
 			if (strcmp(prm.longOpt, "voe") == 0) {
 				cml->voe = atoi(p);
 			}
-
+			if (strcmp(prm.longOpt, "osd") == 0) {
+				cml->osd = atoi(p);
+			}
+			if (strcmp(prm.longOpt, "obj") == 0) {
+				cml->obj = atoi(p);
+			}
 			if (strcmp(prm.longOpt, "dbg") == 0) {
 				cml->voe_dbg = atoi(p);
 			}
@@ -2727,12 +2734,12 @@ int parameter_jpg_get(i32 argc, char **argv, commandLine_s *cml)
 		case 'r':
 			cml->inputRateDenom = atoi(optarg);
 			break;
-		case 'V':
-			cml->rcMode = atoi(optarg);
-			if ((cml->rcMode < 0) || (cml->rcMode > 2)) {
-				status = -1;
-			}
-			break;
+//		case 'V':
+//			cml->rcMode = atoi(optarg);
+//			if ((cml->rcMode < 0) || (cml->rcMode > 2)) {
+//				status = -1;
+//			}
+//			break;
 		case 'E':
 			cml->qpmin = atoi(optarg);
 			break;
@@ -2905,13 +2912,14 @@ void jpeg_help(void)
 			"  -B[n] --bitPerSecond      Target bit per second. [0]\n"
 			"                               0 - RC OFF\n"
 			"                               none zero - RC ON\n"
-#endif
-			"  -n[n] --frameRateNum      1..1048575 Output picture rate numerator. [30]\n"
-			"  -r[n] --frameRateDenom    1..1048575 Output picture rate denominator. [1]\n"
 			"  -V[n] --rcMode            0..2, JPEG/MJPEG RC mode. [1]\n"
 			"                               0 = single frame RC mode. \n"
 			"                               1 = video RC with CBR. \n"
 			"                               2 = video RC with VBR. \n"
+#endif
+			"  -n[n] --frameRateNum      1..1048575 Output picture rate numerator. [30]\n"
+			"  -r[n] --frameRateDenom    1..1048575 Output picture rate denominator. [1]\n"
+
 			"  -U[n:m] --picQpDeltaRange Min:Max. Qp Delta range in picture-level rate control.\n"
 			"                               Min: -10..-1 Minimum Qp_Delta in picture RC. [-2]\n"
 			"                               Max:  1..10  Maximum Qp_Delta in picture RC. [3]\n"

@@ -64,6 +64,7 @@ extern void stdio_port_deinit(void);
 extern void shell_cmd_init(void);
 extern void hal_pinmux_manager_init(hal_pin_mux_mang_t *pinmux_manag);
 s32 snand_boot_loader(PRAM_FUNCTION_START_TABLE *ram_start_func);
+extern int __voe_code_start__[];            // VOE DDR address
 
 SECTION_RAM_VECTOR_TABLE int_vector_t ram_vector_table[MAX_VECTOR_TABLE_NUM] __ALIGNED(256);
 
@@ -524,8 +525,8 @@ int32_t boot_load_no_sb(PRAM_FUNCTION_START_TABLE *pram_start_func)
 					// Debug VOE Flash IMG data
 					//dbg_printf("VOE flash_img_offset_dump:");
 					//dump_bytes ((u8 *)flash_img_offset, 32);
-//					hal_video_load_fw((int *)flash_img_offset, (int *)DDR_FOR_VOE_IMG_LOAD_ADDR);
-					hal_video_load_fw((voe_cpy_t)memcpy, (int *)flash_img_offset, (int *)DDR_FOR_VOE_IMG_LOAD_ADDR);
+//					hal_video_load_fw((int *)flash_img_offset, (int *)__voe_code_start__);
+					hal_video_load_fw((voe_cpy_t)memcpy, (int *)flash_img_offset, (int *)__voe_code_start__);
 
 					dbg_printf("[VOE IMG Load]\r\n");
 #endif
@@ -1311,7 +1312,7 @@ int sb_ram_img_dec_rmp(uint8_t *img_phy_addr, uint8_t *enc_rmp_base_addr, sec_bo
 			RAM_FOOTPH_STORE(BOOT_INFO_IDX1, 12);
 			// Debug VOE Flash IMG data
 			// __mem_dump (pFw_data, 128, "VOE flash_img_offset_dump:");
-			hal_video_load_fw((voe_cpy_t)memcpy, (int *)flash_img_offset, (int *)DDR_FOR_VOE_IMG_LOAD_ADDR);
+			hal_video_load_fw((voe_cpy_t)memcpy, (int *)flash_img_offset, (int *)__voe_code_start__);
 			RAM_FOOTPH_CLR(BOOT_INFO_IDX1, 14);
 			RAM_FOOTPH_STORE(BOOT_INFO_IDX1, 14);
 			dbg_printf("=== Process VOE IMG ===\r\n");
@@ -1752,7 +1753,7 @@ int fw_load_fw_f(const uint8_t *img_offset, PRAM_FUNCTION_START_TABLE *pram_star
 			dbg_printf("=== ISP FCS Done ===\r\n");
 			RAM_FOOTPH_CLR(BOOT_INFO_IDX1, 13);
 			RAM_FOOTPH_STORE(BOOT_INFO_IDX1, 13);
-			hal_video_load_fw((voe_cpy_t)memcpy, (int *)flash_img_offset, (int *)DDR_FOR_VOE_IMG_LOAD_ADDR);
+			hal_video_load_fw((voe_cpy_t)memcpy, (int *)flash_img_offset, (int *)__voe_code_start__);
 			//hal_voe_fcs_set_voe_fm_load_flag_final();
 			RAM_FOOTPH_CLR(BOOT_INFO_IDX1, 14);
 			RAM_FOOTPH_STORE(BOOT_INFO_IDX1, 14);

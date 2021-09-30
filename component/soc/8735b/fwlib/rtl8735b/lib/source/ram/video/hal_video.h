@@ -61,6 +61,7 @@
 #define DEBUG_ERROR      0
 //#define _ISP_ON_TM
 
+//#define __TTFF__
 
 #include "hal_isp.h"
 
@@ -76,10 +77,10 @@ extern "C"
 #define MAX_BPS_ADJUST			20
 #define MAX_SCENE_CHANGE		20
 #define MAX_ENC_BUF				16
-#define USER_DEFINED_QTABLE 10
+#define USER_DEFINED_QTABLE		10
 
 #define MOVING_AVERAGE_FRAMES	120
-#define MAX_CHANNEL 5					// Channel 4 is RGB only
+#define MAX_CHANNEL 			5					// Channel 4 is RGB only
 #define MAX_OBJECT				10
 
 #define CODEC_HEVC				(ENABLE<<VCENC_VIDEO_CODEC_HEVC)	// 0 0x01
@@ -157,6 +158,8 @@ enum isp_tuning_param_type {
 	_ISP_TUNING_PARAM_NUM,
 };
 
+#define IQ_CMD_DATA_SIZE 65536
+
 typedef void (*output_callback_t)(void *, void *, uint32_t);
 
 
@@ -165,7 +168,7 @@ typedef struct {
 	int width;				// output width
 	int height;				// output height
 	int codec;				// Codec Type Bit0:HEVC Bit1:h264 Bit2:JPEG
-	//			  Bit3:NV12 Bit4:RGB  Bit5: ISP_DONE
+							//			  Bit3:NV12 Bit4:RGB  Bit5: ISP_DONE
 	int ch;
 
 	u32 enc_len;			// output bit stream size
@@ -181,7 +184,8 @@ typedef struct {
 	int enc_time;			// HW encode time
 	int post_time;			// post-process time
 	int cmd;
-} enc2out_t;
+	int cmd_status;
+}enc2out_t;
 
 
 
@@ -261,7 +265,7 @@ typedef struct {
 	char input[MAX_PATH];
 	char output[MAX_PATH];
 
-	i32 CodecEnable;
+	i32 CodecType;
 
 	i32 outputRateNumer;      /* Output frame rate numerator */
 	i32 outputRateDenom;      /* Output frame rate denominator */
@@ -276,9 +280,10 @@ typedef struct {
 	i32 lumHeightSrc;
 
 	i32 inputFormat;
-	VCEncVideoCodecFormat outputFormat;     /* Video Codec Format: HEVC/H264/AV1 */
-	i32 JpegMode;
-	i32 YuvMode;
+	VCEncVideoCodecFormat outputFormat;     /* Video Codec Format: HEVC/H264/JPEG/YUV */
+	i32 EncMode;                            /* Encode output mode 0: pause 1: one-shot 2: continue */
+	i32 JpegMode;                           /* JPEG output mode 0: pause 1: one-shot 2: continue */
+	i32 YuvMode;                            /* YUV output mode 0: pause 1: one-shot 2: continue */
 
 	i32 picture_cnt;
 	i32 byteStream;
@@ -499,7 +504,7 @@ typedef struct {
 	u32 preset;
 	u32 writeReconToDDR;
 
-	/* JPEG */
+  /* JPEG */
 	i32 restartInterval;
 //	i32 frameType;
 	i32 partialCoding;
@@ -516,8 +521,10 @@ typedef struct {
 	u32 qpmax;
 	i32 fixedQP;
 
-	/* AmebaPro VOE/buffer control */
+  /* AmebaPro VOE/buffer control */
 	i32 voe;
+	i32 osd;
+	i32 obj;
 
 	u32 lumaSize;
 	i32	enc_cnt;
@@ -536,30 +543,29 @@ typedef struct {
 
 
 typedef struct {
-	volatile int open_done;
-
 	VCEncVideoCodecFormat codecFormat;		/* Video Codec Format: HEVC/H264/JPEG */
-	int run_stream;
 
 	commandLine_s 		*cmd[MAX_CHANNEL];		// Channel 3 is RGB only
-	struct vcenc_instance *enc_adapter[MAX_CHANNEL];
-	struct vcenc_instance *jpg_adapter[MAX_CHANNEL];
+	struct vcenc_instance* enc_adapter[MAX_CHANNEL];
+	struct vcenc_instance* jpg_adapter[MAX_CHANNEL];
 	hal_isp_adapter_t 	*isp_adapter;
 
 	void				*tid_output;			// HAL video internal output task PID
-	void				*tid_isp;			    // HAL ISP internal output task PID on VOE
+	void				*tid_isp;			    // VOE ISP internal output task PID on VOE
 
 	int					*enc_in[MAX_CHANNEL];	// VCEncIn
 	int					*enc_out[MAX_CHANNEL];	// VCEncOut
 
 	int					*voe_heap_addr;			// VOE define heap address
 	int 				voe_heap_size;			// VOE define heap size
+	volatile int		open_ch;				// VOE open channel count
+	volatile int		start_ch;				// VOE start channel count
 
-	output_callback_t	out_cb;					// Output stream callback function
+	output_callback_t	out_cb[MAX_CHANNEL];	// Output stream callback function
 
-	enc2out_t			*enc2out;
+	enc2out_t			*isp2out;				// ISP 2 OSD/ENC queue
+	enc2out_t			*enc2out;				// ENC 2 OUT queue
 	hal_video_buf_s		*outbuf[MAX_CHANNEL];
-
 	hal_video_roi_s		*roi[MAX_CHANNEL];
 
 	int					crc32;
@@ -572,8 +578,8 @@ typedef struct {
 	int					post_time;
 
 
-	i32 width;
-	i32 height;
+	i32 				width;
+	i32 				height;
 
 	/* SW/HW shared memories for input/output buffers */
 #if 0 // next stage implement scale down
@@ -593,7 +599,13 @@ typedef struct {
 	u32 ctx[MAX_CHANNEL];
 } hal_video_adapter_t;
 
+#if !defined (CONFIG_VOE_PLATFORM) || !CONFIG_VOE_PLATFORM // Run on TM9
 
+struct rts_isp_i2c_reg {
+	u16 addr;
+	u16 data;
+};
+#endif
 
 
 
@@ -605,9 +617,9 @@ typedef struct {
 hal_video_adapter_t *hal_video_init(void);
 void hal_video_deinit(hal_video_adapter_t *enc_adapter);
 
-int hal_video_str_parsing(char *str, hal_video_adapter_t *v_adp);
+int hal_video_str_parsing(char* str, hal_video_adapter_t *v_adp);
 int hal_video_str2cmd(char *str1, char *str2, char *str3, hal_video_adapter_t *v_adp);
-int hal_video_cmd_reset(hal_video_adapter_t *v_adp, int ch);
+int hal_video_cmd_reset( hal_video_adapter_t *v_adp, int ch);
 
 int hal_video_open(hal_video_adapter_t *enc_adapter, int ch);
 int hal_video_close(hal_video_adapter_t *enc_adaptor, int ch);
@@ -619,19 +631,23 @@ int hal_video_yuv_out(int ch, int mode);
 int hal_video_jpg_out(int ch, int mode);
 
 int hal_video_release(int ch, int len);
+int hal_video_isp_buf_release(int ch, uint32_t buf_addr);
+int hal_video_isp_set_rawfmt(int ch, uint32_t rawfmt);
+
 
 int hal_video_froce_i(int ch);
 int hal_video_set_rc(rate_ctrl_s *rc, int ch);
 int hal_video_cb_register(hal_video_adapter_t *v_adp, output_callback_t output_cb, u32 arg, int ch);
-int hal_video_isp_ctrl(int ctrl_id, int set_flag, int value);
+int hal_video_isp_ctrl(int ctrl_id, int set_flag, int *value);
 
 int hal_video_roi_region(int ch, int x, int y, int width, int height, int value);
 int hal_video_obj_region(obj_ctrl_s *obj_r, int ch);
-int hal_video_set_voe(hal_video_adapter_t *v_adp, int heap_size, int queue);
 
-int hal_video_mem(hal_video_adapter_t *v_adp, int ch);
-int hal_video_buf(hal_video_adapter_t *v_adp, int ch);
+// Show VOE information
+int hal_video_mem_info(hal_video_adapter_t *v_adp, int ch);
+int hal_video_buf_info(hal_video_adapter_t *v_adp, int ch);
 int hal_video_print(hal_video_adapter_t *v_adp, int mode);
+
 
 
 static __inline__ int hal_video_set_wdt(int sec)
@@ -639,13 +655,9 @@ static __inline__ int hal_video_set_wdt(int sec)
 	return hal_voe_set_wdt(sec);
 }
 
-static __inline__ void hal_video_enc_buf(hal_video_adapter_t *v_adp, int ch, int buf_size, int rsvd_size)
-{
-	commandLine_s *cml = v_adp->cmd[ch];
-	cml->out_buf_size = buf_size;
-	cml->out_rsvd_size = rsvd_size;
-
-}
+// VOE bring up flow
+int hal_video_voe_open(hal_video_adapter_t *v_adp, int heap_size, int queue);
+int hal_video_voe_close(hal_video_adapter_t *v_adp);
 
 static __inline__ int hal_video_load_fw(voe_cpy_t voe_cpy, int *fw_addr, int *voe_ddr_addr)
 {
@@ -668,6 +680,27 @@ static __inline__ int hal_video_load_iq(hal_video_adapter_t *v_adp, int *iq_addr
 	}
 
 }
+
+// VOE!@ISP/ENC buffer setting
+static __inline__ void hal_video_enc_buf(hal_video_adapter_t *v_adp, int ch, int buf_size, int rsvd_size)
+{
+	commandLine_s *cml =v_adp->cmd[ch];
+	cml->out_buf_size = buf_size;
+	cml->out_rsvd_size = rsvd_size;
+}
+
+static __inline__ int hal_video_isp_buf_num(hal_video_adapter_t *v_adp, int ch, int buf_num)
+{
+	if (v_adp->isp_adapter != NULL) {
+		v_adp->isp_adapter->video_stream[ch].buff_num = buf_num;
+		printf ("%d buff %d\n", ch, v_adp->isp_adapter->video_stream[ch].buff_num);
+		return OK;
+	} else {
+		printf("Set stream ISP buffer fail\n");
+		return NOK;
+	}
+}
+
 #endif // #if !defined (CONFIG_VOE_PLATFORM) || !CONFIG_VOE_PLATFORM // Run on TM9
 /** @} */ /* End of group hal_enc */
 

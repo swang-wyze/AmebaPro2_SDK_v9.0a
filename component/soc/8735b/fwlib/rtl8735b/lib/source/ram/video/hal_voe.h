@@ -82,7 +82,7 @@ typedef struct hal_voe_adapter_s {
 	void *erac_finish_cb_para;      /*! the argument for line buffer overflow */
 
 	u32 voe_send_message;
-	u32 voe_cmd;
+	volatile u32 voe_cmd;
 
 	u32 voe_enc_status[2];
 
@@ -135,6 +135,8 @@ int hal_voe_fcs_check_km_run_done(void);
 //void hal_voe_fcs_set_voe_fm_load_flag(void);
 void hal_voe_fcs_set_voe_fm_load_flag_final(void);
 int hal_voe_fcs_check_OK(void);
+int hal_voe_set_wdt(int sec);
+
 /** @} */ /* End of group hs_hal_voe */
 
 #ifdef __cplusplus

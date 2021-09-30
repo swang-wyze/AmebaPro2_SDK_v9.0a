@@ -77,6 +77,8 @@ extern "C"
 #define MFCS_FCS_CNT_ID_ERR     0x1007
 #define MFCS_FCS_ADDR_SZ_ERR    0x1008
 #define FCS_WAIT_KM_TMOUT_ERR   0x1009
+#define FCS_WAIT_SNR_TMOUT_ERR  0x100A
+#define FCS_INVALID_CMD_ERR     0x100B
 
 #define KM_ERROR                0x2000
 #define FCS_CMD_INVALID_ERR     0x2006
@@ -88,7 +90,13 @@ extern "C"
 #define FCS_PWM_INIT_ERR        0x200C
 #define FCS_DATA_I2C_CNT_ERR    0x200D
 
-
+#define FCS_ADC_NIDLE_ERR       0x2010
+#define FCS_ADC_INPROG_ERR      0x2011
+#define FCS_ADC_SINREAD_ERR     0x2012
+#define FCS_ADC_CALIPARA_ERR    0x2013
+#define FCS_ADC_DIVBYZERO_ERR   0x2014
+#define FCS_ADC_NEGVALUE_ERR    0x2015
+#define FCS_ADC_OVERFLOW_ERR    0x2016
 
 
 #define FCS_I2C_TRANS_ERR       0x2100
@@ -114,7 +122,9 @@ extern "C"
 #define VOE_DRAM_S 0x20000000
 #define VOE_DRAM_E 0x2000FFFF       // 64KB
 
-#define WAIT_KM_INIT_TIMEOUT_US     5000
+//#define DDR_FOR_VOE_IMG_LOAD_ADDR             (0x70000000)
+
+//#define WAIT_KM_INIT_TIMEOUT_US       5000
 
 #define FCS_ADC_PARAM_IDX_MAX               (4)
 #define FCS_ADC_PARAM_GAIN_DENO_SIZE        (2)
@@ -138,10 +148,12 @@ enum {
 typedef struct isp_multi_fcs_hdr_s {
 	uint32_t magic;
 	uint32_t version;
-	uint8_t  multi_fcs_cnt;
-	uint8_t  active_fcs;
 	uint32_t fcs_data_size[MULTI_FCS_MAX];
 	uint32_t fcs_data_offset[MULTI_FCS_MAX];
+	uint32_t wait_km_init_timeout_us;
+	uint8_t  multi_fcs_cnt;
+	uint8_t  active_fcs;
+	uint8_t  reserved[6];
 } isp_multi_fcs_hdr_t;
 
 
@@ -174,11 +186,7 @@ typedef struct isp_fcs_header_s {
 	uint8_t snr_clk_pin; // dedicated gpio
 	uint8_t i2c_scl; // dedicated gpio
 	uint8_t i2c_sda; // dedicated gpio
-
-
-	//uint8_t gpio_ir_led;
-	//uint8_t gpio_ir_cut[2];
-	//uint8_t gpio_adc_pwr_ctrl; //optional
+	uint8_t reserved0;
 
 	uint8_t adc_th_num;
 	uint8_t adc_th_table_num;
@@ -188,10 +196,15 @@ typedef struct isp_fcs_header_s {
 
 	int16_t adc_gain_deno;
 	int16_t adc_gain_mole;
-	int16_t adc_offset_deno;
 	int32_t adc_offset_mole;
 
-	uint8_t reserved[8];
+
+	int16_t adc_offset_deno;
+	int16_t wait_i2c_delay_us;
+	uint32_t snr_timeout_us;
+
+	uint16_t adc_trig_delay;
+	uint8_t reserved[6];
 
 
 
@@ -217,7 +230,6 @@ typedef struct voe_header_s {
 
 typedef void (*voe_cpy_t)(void *, void *, size_t);
 int hal_rtl_voe_fcs_process(voe_cpy_t voe_cpy, uint32_t mfcs_data_addr, uint8_t fcs_id, uint32_t total_size);
-int verify_fcs_isp_iq_manif_f(const uint8_t *img_offset, const uint8_t info_type, uint8_t *pfcs_id)
 ;
 
 #ifdef  __cplusplus

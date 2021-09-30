@@ -22,6 +22,17 @@
 #define V3_BPS 2*1024*1024
 #define V3_RCMODE 2 // 1: CBR, 2: VBR
 
+#if V3_RESOLUTION == VIDEO_VGA
+#define V3_WIDTH	640
+#define V3_HEIGHT	480
+#elif V3_RESOLUTION == VIDEO_HD
+#define V3_WIDTH	1280
+#define V3_HEIGHT	720
+#elif V3_RESOLUTION == VIDEO_FHD
+#define V3_WIDTH	1920
+#define V3_HEIGHT	1080
+#endif
+
 static mm_context_t *video_v3_ctx			= NULL;
 static mm_context_t *rtsp2_v3_ctx			= NULL;
 static mm_siso_t *siso_video_rtsp_v3			= NULL;
@@ -30,8 +41,8 @@ static video_params_t video_v3_params = {
 	.stream_id = V3_CHANNEL,
 	.type = VIDEO_JPEG,
 	.resolution = V3_RESOLUTION,
-	.width = video_res_w[V3_RESOLUTION],
-	.height = video_res_h[V3_RESOLUTION],
+	.width = V3_WIDTH,
+	.height = V3_HEIGHT,
 	.fps = V3_FPS,
 };
 
@@ -49,10 +60,10 @@ static rtsp2_params_t rtsp2_v3_params = {
 
 void mmf2_video_example_v3_init(void)
 {
-	int voe_heap_size = video_voe_presetting(0, NULL, NULL, 0,
-						0, NULL, NULL,
-						1, V3_RESOLUTION, V3_BPS,
-						0, NULL);
+	int voe_heap_size = video_voe_presetting(0, 0, 0, 0, 0,
+						0, 0, 0, 0,
+						1, V3_WIDTH, V3_HEIGHT, V3_BPS,
+						0, 0, 0);
 
 	printf("\r\n voe heap size = %d\r\n", voe_heap_size);
 

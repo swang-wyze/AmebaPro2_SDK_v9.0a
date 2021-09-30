@@ -34,6 +34,17 @@
 #define VIDEO_CODEC AV_CODEC_ID_H264
 #endif
 
+#if V2_RESOLUTION == VIDEO_VGA
+#define V2_WIDTH	640
+#define V2_HEIGHT	480
+#elif V2_RESOLUTION == VIDEO_HD
+#define V2_WIDTH	1280
+#define V2_HEIGHT	720
+#elif V2_RESOLUTION == VIDEO_FHD
+#define V2_WIDTH	1920
+#define V2_HEIGHT	1080
+#endif
+
 static mm_context_t *video_v2_ctx			= NULL;
 static mm_context_t *rtsp2_v2_ctx			= NULL;
 static mm_siso_t *siso_video_rtsp_v2			= NULL;
@@ -42,8 +53,8 @@ static video_params_t video_v2_params = {
 	.stream_id = V2_CHANNEL,
 	.type = VIDEO_TYPE,
 	.resolution = V2_RESOLUTION,
-	.width = video_res_w[V2_RESOLUTION],
-	.height = video_res_h[V2_RESOLUTION],
+	.width = V2_WIDTH,
+	.height = V2_HEIGHT,
 	.bps = V2_BPS,
 	.fps = V2_FPS,
 	.gop = V2_GOP,
@@ -66,10 +77,10 @@ static rtsp2_params_t rtsp2_v2_params = {
 
 void mmf2_video_example_v2_init(void)
 {
-	int voe_heap_size = video_voe_presetting(0, NULL, NULL, 0,
-						1, V2_RESOLUTION, V2_BPS,
-						0, NULL, NULL,
-						0, NULL);
+	int voe_heap_size = video_voe_presetting(0, 0, 0, 0, 0,
+						1, V2_WIDTH, V2_HEIGHT, V2_BPS,
+						0, 0, 0, 0,
+						0, 0, 0);
 
 	printf("\r\n voe heap size = %d\r\n", voe_heap_size);
 

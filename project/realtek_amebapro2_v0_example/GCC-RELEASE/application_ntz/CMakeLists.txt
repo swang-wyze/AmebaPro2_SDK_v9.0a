@@ -385,8 +385,9 @@ list(
 list(
 	APPEND app_ntz_sources	
 	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/video/voe_bin/sensor_gc2053.s
-	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/video/voe_bin/sensor_fixp.s
-	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/video/voe_bin/iq_bin.s
+	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/video/voe_bin/sensor_ps5258.s
+	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/video/voe_bin/iq_gc2053_bin.s
+	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/video/voe_bin/iq_ps5258_bin.s
 	${sdk_root}/component/media/mmfv2/module_video.c
 	${sdk_root}/component/media/mmfv2/module_rtsp2.c
 	${sdk_root}/component/media/mmfv2/module_array.c
@@ -413,7 +414,7 @@ list(
 
 #VOE TEST
 list(
-	APPEND app_ntz_sources	
+	APPEND app_ntz_sources
 	${prj_root}/src/mmfv2_video_example/video_example_media_framework.c
 	${prj_root}/src/mmfv2_video_example/mmf2_video_example_array_rtsp_init.c
 	${prj_root}/src/mmfv2_video_example/mmf2_video_example_v1_init.c
@@ -431,6 +432,10 @@ list(
 	${prj_root}/src/mmfv2_video_example/mmf2_video_example_2way_audio_pcmu_doorbell_init.c
 	${prj_root}/src/mmfv2_video_example/mmf2_video_example_2way_audio_pcmu_init.c
 	${prj_root}/src/mmfv2_video_example/mmf2_video_example_v1_param_change_init.c
+	#${prj_root}/src/mmfv2_video_example/mmf2_video_example_av_mp4_httpfs_init.c
+	${prj_root}/src/mmfv2_video_example/mmf2_video_example_v4_rgb_init.c
+	${prj_root}/src/mmfv2_video_example/mmf2_video_example_v1_reset_init.c
+	
 )
 
 #AUDIO TEST
@@ -446,17 +451,17 @@ list(
 	${sdk_root}/component/example/media_framework/mmf2_example_aac_array_rtsp_init.c
 	${sdk_root}/component/example/media_framework/mmf2_example_pcmu_array_rtsp_init.c
 	${sdk_root}/component/example/media_framework/mmf2_example_rtp_aad_init.c
-	${sdk_root}/component/example/media_framework/mmf2_example_i2s_audio_init.c
+    ${sdk_root}/component/example/media_framework/mmf2_example_i2s_audio_init.c
     ${sdk_root}/component/example/media_framework/mmf2_example_2way_audio_opus_init.c
     ${sdk_root}/component/example/media_framework/mmf2_example_a_opus_init.c
     ${sdk_root}/component/example/media_framework/mmf2_example_rtp_opusd_init.c
     ${sdk_root}/component/example/media_framework/mmf2_example_opusloop_init.c
 )
-
+	
 #CLOUD TEST
 list(
 	APPEND app_ntz_sources
-
+	
     #test skynet
 	${prj_root}/src/doorbell-chime/skynet_device.c
 	${prj_root}/src/doorbell-chime/module_p2p.c
@@ -532,7 +537,7 @@ list(
 )
 
 if(BUILD_KVS_DEMO)
-	include(./libkvs_amazon.cmake)
+    include(./libkvs_amazon.cmake)
 endif()
 
 if(SIMULATION)
@@ -609,23 +614,23 @@ target_include_directories(
 	${sdk_root}/component/os/freertos/${freertos}/Source/portable/GCC/ARM_CM33_NTZ/non_secure
 	${prj_root}/src/mmfv2_video_example/
 	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/video/voe_bin/
-
+	
 	#${prj_root}/src/nn
 	${prj_root}/src/nn_verify
 	${prj_root}/src/nn_verify/model_nbg
 	${prj_root}/src/test_model
 	${prj_root}/src/VIPLiteDrv/sdk/inc
 	${prj_root}/src
-
+	
 	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn
 	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn/model_itp
 	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn/nn_api
 	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn/nn_postprocess
 	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn/nn_preprocess
 	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn/run_itp
-
+	
 	${sdk_root}/component/soc/8735b/fwlib/rtl8735b/lib/source/ram/nn/VIPLiteParser
-
+	
 	${sdk_root}/component/media/mmfv2
 	${sdk_root}/component/media/rtp_codec
 	${sdk_root}/component/example/media_framework/inc
@@ -680,23 +685,23 @@ target_include_directories(
 	${app_ntz}
 	PUBLIC
 
-	${prj_root}/src/amazon_kvs/lib_amazon/gcc_include
-	${prj_root}/src/amazon_kvs/lib_amazon/producer/src/include
-	${prj_root}/src/amazon_kvs/lib_amazon/posix/lib/include
-	${prj_root}/src/amazon_kvs/lib_amazon/posix/lib/FreeRTOS-Plus-POSIX/include/portable/realtek/rtl8195
-	${prj_root}/src/amazon_kvs/lib_amazon/posix/lib/FreeRTOS-Plus-POSIX/include
-	${prj_root}/src/amazon_kvs/lib_amazon/posix/lib/FreeRTOS-Plus-POSIX/include/portable
-	${prj_root}/src/amazon_kvs/lib_amazon/posix/lib/include/private
+    ${prj_root}/src/amazon_kvs/lib_amazon/gcc_include
+    ${prj_root}/src/amazon_kvs/lib_amazon/producer/src/include
+    ${prj_root}/src/amazon_kvs/lib_amazon/posix/lib/include
+    ${prj_root}/src/amazon_kvs/lib_amazon/posix/lib/FreeRTOS-Plus-POSIX/include/portable/realtek/rtl8195
+    ${prj_root}/src/amazon_kvs/lib_amazon/posix/lib/FreeRTOS-Plus-POSIX/include
+    ${prj_root}/src/amazon_kvs/lib_amazon/posix/lib/FreeRTOS-Plus-POSIX/include/portable
+    ${prj_root}/src/amazon_kvs/lib_amazon/posix/lib/include/private
 )
 
 target_link_libraries(
 	${app_ntz} 
-	kvs_webrtc
-	kvs_producer_c
-	kvs_pic
-	websockets
+    kvs_webrtc
+    kvs_producer_c
+    kvs_pic
+    websockets
 	srtp2
-	kvs_producer
+    kvs_producer
 )
 endif()
 

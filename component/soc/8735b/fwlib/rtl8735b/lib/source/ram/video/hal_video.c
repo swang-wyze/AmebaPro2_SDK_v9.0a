@@ -29,7 +29,7 @@
 
 #include "cmsis.h"
 #include "hal_video.h"
-//#include <math.h>
+#include "hal_osd_util.h"
 
 #if !defined (CONFIG_VOE_PLATFORM) || !CONFIG_VOE_PLATFORM // Run on TM9
 #endif
@@ -70,21 +70,28 @@ void voe_cb(u32 param1)
 	BaseType_t xHigherPriorityTaskWoken = pdTRUE; // pdTRUE/pdFALSE
 	enc2out_t *enc2out;
 	int cmd = check_km_cmd();
-
-
+	int ch = check_km_ch();
+	int status = check_km_status();
+	commandLine_s *cml =video_adapter->cmd[ch];
 	if ((VOE_OUT_CMD == cmd) || (VOE_STOP_CMD == cmd)) {
-		enc2out = (enc2out_t *)video_adapter->enc2out;
+		if( (cml->CodecType & (CODEC_NV12 | CODEC_RGB | CODEC_NV16)) != 0 ) {
+			enc2out = (enc2out_t *)video_adapter->isp2out;
+		}
+		else {
+			enc2out = (enc2out_t *)video_adapter->enc2out;
+		}
 		dcache_invalidate_by_addr((uint32_t *)enc2out, sizeof(enc2out_t));
 		enc2out->cmd = cmd;
-
+		enc2out->cmd_status = status;
 		if (enc2out->queue != NULL) {
 			if (xQueueSendFromISR(enc2out->queue, enc2out,  &xHigherPriorityTaskWoken) != pdPASS) {
 				printf("<<test>><%s><%d> enc2out Queue Full \n", __func__, __LINE__);
 			}
 		}
-	} else if (VOE_OPEN_CMD == cmd) {
+	}
+	else if (VOE_OPEN_CMD == cmd) {
 		enc2out->cmd = cmd;
-		printf("<<test>><%s><%d> VOE open done \n", __func__, __LINE__);
+		//printf("<<test>><%s><%d> VOE open done \n", __func__, __LINE__);
 	}
 #if	CONFIG_VERIFY_VOE
 	else if (FW_BOOT_DONE_CMD == cmd) {
@@ -133,11 +140,11 @@ void hal_video_output_task(void const *argument)
 
 		if (cml->voe == 1) {// VOE enable
 			if (e2o.finish <= NORMAL_FRAME) {
-				v_adp->out_cb(&e2o, v_adp, v_adp->ctx[e2o.ch]);
+				v_adp->out_cb[e2o.ch](&e2o, v_adp, v_adp->ctx[e2o.ch]);
 			}
 			dcache_clean_invalidate_by_addr((uint32_t *)&e2o, sizeof(enc2out_t));
 		} else {
-			v_adp->out_cb(&e2o, v_adp, v_adp->ctx[e2o.ch]);
+			v_adp->out_cb[e2o.ch](&e2o, v_adp, v_adp->ctx[e2o.ch]);
 		}
 	}
 
@@ -146,30 +153,30 @@ void hal_video_output_task(void const *argument)
 }
 
 
-hal_video_adapter_t *hal_video_init(void)
+hal_video_adapter_t *hal_video_init(void) 
 {
 	hal_video_adapter_t *v_adp;
 
 	int i;
 #if (CONFIG_CHIP_VER > CHIP_TEST_CUT)
 	printf("ISP:%d ENC:%d H265:%d NN:%d\n"
-		   , hal_sys_get_video_info(VIDEO_INFO_ISP)
-		   , hal_sys_get_video_info(VIDEO_INFO_ENC)
-		   , hal_sys_get_video_info(VIDEO_INFO_H265)
-		   , hal_sys_get_video_info(VIDEO_INFO_NN));
-	if (hal_sys_get_video_info(VIDEO_INFO_ISP) != ENABLE) {
+			,hal_sys_get_video_info(VIDEO_INFO_ISP)
+			,hal_sys_get_video_info(VIDEO_INFO_ENC)
+			,hal_sys_get_video_info(VIDEO_INFO_H265)
+			,hal_sys_get_video_info(VIDEO_INFO_NN));
+	if(hal_sys_get_video_info(VIDEO_INFO_ISP) != ENABLE) {
 		printf("Chip not support ISP\n");
 		return NULL;
 	}
-	if (hal_sys_get_video_info(VIDEO_INFO_ENC) != ENABLE) {
+	if(hal_sys_get_video_info(VIDEO_INFO_ENC) != ENABLE) {
 		printf("Chip not support ENC\n");
 		return NULL;
 	}
 #endif
 
-	if (video_adapter != NULL) {
-		printf("video is running\n");
-		return video_adapter;
+	if(video_adapter != NULL) {
+    	printf("video is running\n");
+    	return video_adapter;
 	}
 #if 1
 #if CONFIG_FPGA // FPGA
@@ -179,7 +186,7 @@ hal_video_adapter_t *hal_video_init(void)
 	i2c_master_sample.pltf_dat.scl_pin		= PIN_D14;//PIN_F2;
 	i2c_master_sample.pltf_dat.sda_pin	   = PIN_D12;//PIN_F3;
 #else
-	i2c_master_sample.pltf_dat.scl_pin		= PIN_D12;//PIN_F2;
+    i2c_master_sample.pltf_dat.scl_pin		= PIN_D12;//PIN_F2;
 	i2c_master_sample.pltf_dat.sda_pin	   = PIN_D10;//PIN_F3;
 #endif
 	i2c_master_sample.init_dat.index = 3;//1;
@@ -187,11 +194,11 @@ hal_video_adapter_t *hal_video_init(void)
 
 	// Enable APHY I2c
 	volatile hal_i2c_adapter_t	i2c_master_aphy_sample;
-#if IS_CUT_TEST(CONFIG_CHIP_VER)
+#if IS_CUT_TEST(CONFIG_CHIP_VER)    
 	i2c_master_aphy_sample.pltf_dat.scl_pin		= PIN_E7;
 	i2c_master_aphy_sample.pltf_dat.sda_pin	   = PIN_E8;
 #else
-	i2c_master_aphy_sample.pltf_dat.scl_pin		= PIN_E3;
+    i2c_master_aphy_sample.pltf_dat.scl_pin		= PIN_E3;
 	i2c_master_aphy_sample.pltf_dat.sda_pin	   = PIN_E4;
 #endif
 	i2c_master_aphy_sample.init_dat.index = 2;
@@ -207,7 +214,7 @@ hal_video_adapter_t *hal_video_init(void)
 		i2c_master_sample.init_dat.index = 3;//1;
 		hal_i2c_pin_register_simple(&i2c_master_sample);
 
-		dbg_printf("i2c: %x pin init ready\n\r", i2c_master_sample.init_dat.index);
+		//dbg_printf("i2c: %x pin init ready\n\r", i2c_master_sample.init_dat.index);
 	}
 //#endif
 
@@ -216,20 +223,20 @@ hal_video_adapter_t *hal_video_init(void)
 
 //#ifdef _NO_FCS_
 	if (!hal_voe_fcs_check_OK()) {
-		// Enable GPIO
-		hal_sys_peripheral_en(GPIO_SYS, ENABLE);
+	// Enable GPIO
+	hal_sys_peripheral_en(GPIO_SYS, ENABLE);
 #if IS_CUT_TEST(CONFIG_CHIP_VER)
-		hal_pinmux_register(PIN_D13, PID_GPIO);//reset pin
-		hal_pinmux_register(PIN_D11, PID_GPIO);//power down pin
+	hal_pinmux_register(PIN_D13, PID_GPIO);//reset pin
+	hal_pinmux_register(PIN_D11, PID_GPIO);//power down pin
 #else
-		hal_pinmux_register(PIN_E0, PID_GPIO);//reset pin
-		hal_pinmux_register(PIN_D11, PID_GPIO);//power down pin
+	hal_pinmux_register(PIN_E0, PID_GPIO);//reset pin
+	hal_pinmux_register(PIN_D11, PID_GPIO);//power down pin
 #endif
 		// Enable sensor clock(hclk)
 #if IS_CUT_TEST(CONFIG_CHIP_VER)
-		hal_pinmux_register(PIN_D10, PID_SENSOR);//reset pin
+	hal_pinmux_register(PIN_D10, PID_SENSOR);//reset pin
 #else
-		hal_pinmux_register(PIN_D13, PID_SENSOR);//reset pin
+	hal_pinmux_register(PIN_D13, PID_SENSOR);//reset pin
 #endif
 	}
 	// Enable ISP HW
@@ -260,18 +267,11 @@ hal_video_adapter_t *hal_video_init(void)
 	}
 	memset(v_adp->enc2out, 0, sizeof(enc2out_t));
 
-#if 0
-	enc2out_t *enc2out =  v_adp->enc2out;
-
-	// Need modify enc2out queue depth
-	if (enc2out->queue == NULL) {
-		enc2out->queue = xQueueCreate(60, sizeof(enc2out_t));
-		if (enc2out->queue == NULL) {
-			printf("open enc2out queue fail\n");
-			return NULL;
-		}
+	v_adp->isp2out = malloc(sizeof(enc2out_t));
+	if (v_adp->isp2out == NULL) {
+		return NULL;
 	}
-#endif
+	memset(v_adp->isp2out, 0, sizeof(enc2out_t));
 
 
 	for (i = 0; i < MAX_CHANNEL; i++) {
@@ -327,7 +327,7 @@ void hal_video_deinit(hal_video_adapter_t *v_adp)
 	i2c_master_sample.pltf_dat.scl_pin		= PIN_D14;//PIN_F2;
 	i2c_master_sample.pltf_dat.sda_pin	   = PIN_D12;//PIN_F3;
 #else
-	i2c_master_sample.pltf_dat.scl_pin		= PIN_D12;//PIN_F2;
+    i2c_master_sample.pltf_dat.scl_pin		= PIN_D12;//PIN_F2;
 	i2c_master_sample.pltf_dat.sda_pin	   = PIN_D10;//PIN_F3;
 #endif
 	i2c_master_sample.init_dat.index = 3;//1;
@@ -335,11 +335,11 @@ void hal_video_deinit(hal_video_adapter_t *v_adp)
 
 	// Disable APHY I2c
 	volatile hal_i2c_adapter_t	i2c_master_aphy_sample;
-#if IS_CUT_TEST(CONFIG_CHIP_VER)
+#if IS_CUT_TEST(CONFIG_CHIP_VER)    
 	i2c_master_aphy_sample.pltf_dat.scl_pin		= PIN_E7;
 	i2c_master_aphy_sample.pltf_dat.sda_pin	   = PIN_E8;
 #else
-	i2c_master_aphy_sample.pltf_dat.scl_pin		= PIN_E3;
+    i2c_master_aphy_sample.pltf_dat.scl_pin		= PIN_E3;
 	i2c_master_aphy_sample.pltf_dat.sda_pin	   = PIN_E4;
 #endif
 	i2c_master_aphy_sample.init_dat.index = 2;
@@ -362,7 +362,7 @@ void hal_video_deinit(hal_video_adapter_t *v_adp)
 	hal_pinmux_unregister(PIN_E0, PID_GPIO);//reset pin
 	hal_pinmux_unregister(PIN_D11, PID_GPIO);//power down pin
 #endif
-	// Enable sensor clock(hclk)
+		// Enable sensor clock(hclk)
 #if IS_CUT_TEST(CONFIG_CHIP_VER)
 	hal_pinmux_unregister(PIN_D10, PID_SENSOR);//reset pin
 #else
@@ -391,17 +391,22 @@ void hal_video_deinit(hal_video_adapter_t *v_adp)
 		}
 	}
 
+	if (v_adp->isp2out != NULL) {
+		free(v_adp->isp2out);
+		v_adp->isp2out = NULL;
+	}
+
 	if (v_adp->enc2out != NULL) {
-#if 1
 		enc2out_t *enc2out = v_adp->enc2out;;
 		if (enc2out->queue != NULL) {
 			vQueueDelete(enc2out->queue);
 			enc2out->queue = NULL;
 		}
-#endif
 		free(v_adp->enc2out);
 		v_adp->enc2out = NULL;
 	}
+
+
 
 #if 0 // next stage implement scale down
 	if (v_adp->pictureStabMem.virtualAddress != NULL) {
@@ -417,11 +422,11 @@ void hal_video_deinit(hal_video_adapter_t *v_adp)
 
 }
 
-int hal_video_buf(hal_video_adapter_t *v_adp, int ch)
+int hal_video_buf_info(hal_video_adapter_t *v_adp, int ch)
 {
 	i32 ret = OK;
 
-	ret = hal_voe_send2voe(VOE_BUF_CMD, (u32)NULL, (u32)ch);
+	ret = hal_voe_send2voe(VOE_BUF_INFO_CMD, (u32)ch, (u32)NULL);
 	if (ret < 0) {
 		printf("VOE_BUF_CMD command fail %x\n", ret);
 		return NOK;
@@ -429,10 +434,10 @@ int hal_video_buf(hal_video_adapter_t *v_adp, int ch)
 	return OK;
 }
 
-int hal_video_mem(hal_video_adapter_t *v_adp, int ch)
+int hal_video_mem_info(hal_video_adapter_t *v_adp, int ch)
 {
 	i32 ret = OK;
-	ret = hal_voe_send2voe(VOE_MEM_CMD, (u32)NULL, (u32)ch);
+	ret = hal_voe_send2voe(VOE_MEM_INFO_CMD, (u32)ch, (u32)NULL);
 	if (ret < 0) {
 		printf("VOE_MEM_CMD command fail %x\n", ret);
 		return NOK;
@@ -443,7 +448,7 @@ int hal_video_mem(hal_video_adapter_t *v_adp, int ch)
 int hal_video_print(hal_video_adapter_t *v_adp, int mode)
 {
 	i32 ret = OK;
-	ret = hal_voe_send2voe(VOE_PRINT_CMD, (u32)mode, (u32)NULL);
+	ret = hal_voe_send2voe(VOE_PRINT_CMD, (u32)NULL, (u32)mode);
 	if (ret < 0) {
 		printf("VOE_PRINT_CMD command fail %x\n", ret);
 		return NOK;
@@ -455,14 +460,28 @@ int hal_video_release(int ch, int len)
 {
 	i32 ret = OK;
 	commandLine_s *cml = video_adapter->cmd[ch];
-	if (cml->CodecEnable & (CODEC_HEVC | CODEC_H264 | CODEC_RGB)) {
+	if(cml->CodecType & (CODEC_HEVC | CODEC_H264 )) {
 
 		ret = hal_voe_send2voe(VOE_RELEASE_SLOT_CMD, ch, len);
-		if (ret < 0) {
-			printf("VOE_RELEASE_SLOT_CMD command fail %x\n", ret);
+		if(ret < 0){
+			printf("VOE_RELEASE_SLOT_CMD command fail %x\n",ret);
 			return NOK;
 		}
 	}
+	return OK;
+}
+
+int hal_video_isp_buf_release(int ch, uint32_t buf_addr)
+{
+	i32 ret = OK;
+	commandLine_s *cml = video_adapter->cmd[ch];
+	//if(cml->CodecType & (CODEC_RGB | CODEC_NV12 | CODEC_NV16 )) {
+		ret = hal_voe_send2voe(VOE_ISP_BUF_RELEASE_CMD, ch, buf_addr);
+		if(ret < 0){
+			//printf("VOE_ISP_BUF_RELEASE command fail %x\n",ret);
+			return NOK;
+		}
+	//}
 	return OK;
 }
 int hal_video_start(hal_video_adapter_t *v_adp, int ch)
@@ -527,14 +546,14 @@ int hal_video_open(hal_video_adapter_t *v_adp, int ch)
 	v_adp->crc32 = 0;
 #if (CONFIG_CHIP_VER > CHIP_TEST_CUT)
 	// Check Chip support HEVC
-	if ((hal_sys_get_video_info(VIDEO_INFO_H265) != ENABLE)
-		&& ((cml->CodecEnable & CODEC_HEVC) != 0)) {
+	if((hal_sys_get_video_info(VIDEO_INFO_H265) != ENABLE)
+		&& ((cml->CodecType & CODEC_HEVC) != 0) ) {
 		printf("Chip not support HEVC\n");
 		return NOK;
 	}
 #endif
 	// Check IQ binary
-	if (v_adp->isp_adapter->iq_addr == NULL) {
+	if ((v_adp->isp_adapter->iq_addr == NULL) && (cml->voe == 1)){
 		printf("No IQ binary\n");
 		return NOK;
 	}
@@ -550,8 +569,6 @@ int hal_video_open(hal_video_adapter_t *v_adp, int ch)
 
 
 	if ((cml->voe == 1)) { // VOE enable
-		v_adp->open_done = 0;
-
 		dcache_clean_invalidate();
 		ret = hal_voe_send2voe((u32)VOE_OPEN_CMD, (u32)v_adp, (u32)ch);
 		if (ret < 0) {
@@ -559,12 +576,10 @@ int hal_video_open(hal_video_adapter_t *v_adp, int ch)
 			//hal_video_close(v_adp, ch);
 			return NOK;
 		}
-		while (v_adp->open_done == 1) {
-			hal_delay_us(1000000); //delay 1ms
-			printf("wating open done\n");
-		}
 		dcache_invalidate_by_addr((uint32_t *)v_adp, sizeof(hal_video_adapter_t));
-
+	}
+	else {
+		v_adp->open_ch++;
 	}
 
 	return OK;
@@ -595,30 +610,35 @@ int hal_video_close(hal_video_adapter_t *v_adp, int ch)
 			printf("VOE_CLOSE_CMD command fail %x\n", ret);
 			return NOK;
 		}
-		//hal_voe_deinit();
-		//if(v_adp->voe_heap_addr != NULL)
-		//free(v_adp->voe_heap_addr);
+		//	dcache_invalidate_by_addr((uint32_t *)v_adp, sizeof(hal_video_adapter_t));
+	}
+	else {
+		v_adp->open_ch--;
 	}
 
-	enc2out->finish = FINISH;
-	if (xQueueSend(enc2out->queue, enc2out,  portMAX_DELAY) != pdPASS) {
-		printf("<<test>><%s><%d> enc2out Queue Full \n", __func__, __LINE__);
-	}
-
-	while (eTaskGetState(v_adp->tid_output) != eDeleted) {
-		hal_delay_us(1000); //delay 1ms
-		//printf("<<test>><%s><%d> %d\n",__func__, __LINE__, eTaskGetState(v_adp->tid_output));
-		i++;
-		if (i > 1000) {
-			printf("== output_task force close ==\n");
-			osThreadTerminate(v_adp->tid_output);
+	if(v_adp->open_ch == 0) {
+		enc2out->finish = FINISH;
+		if (xQueueSend(enc2out->queue, enc2out,  portMAX_DELAY) != pdPASS) {
+			printf("<<test>><%s><%d> enc2out Queue Full \n", __func__, __LINE__);
 		}
+
+		while (eTaskGetState(v_adp->tid_output) != eDeleted) {
+			vTaskDelay(1); // delay 1ms
+			//printf("<<test>><%s><%d> %d\n",__func__, __LINE__, eTaskGetState(v_adp->tid_output));
+			i++;
+			if (i > 1000) {
+				printf("== output_task force close ==\n");
+				osThreadTerminate(v_adp->tid_output);
+			}
+		}
+		v_adp->tid_output = NULL;
 	}
-	v_adp->tid_output = NULL;
+
+
 	return OK;
 }
 
-int hal_video_set_voe(hal_video_adapter_t *v_adp, int heap_size, int queue)
+int hal_video_voe_open(hal_video_adapter_t *v_adp, int heap_size, int queue)
 {
 	int ret = OK;
 	if (v_adp->voe_heap_addr == NULL) {
@@ -626,7 +646,7 @@ int hal_video_set_voe(hal_video_adapter_t *v_adp, int heap_size, int queue)
 		dcache_clean_invalidate();
 
 		v_adp->voe_heap_addr = malloc(v_adp->voe_heap_size);
-		if (v_adp->voe_heap_addr == NULL) {
+		if(v_adp->voe_heap_addr == NULL){
 			printf("VOE heap malloc fail \n");
 			return NOK;
 		}
@@ -639,14 +659,15 @@ int hal_video_set_voe(hal_video_adapter_t *v_adp, int heap_size, int queue)
 				printf("open enc2out queue fail\n");
 				return NOK;
 			}
+			v_adp->isp2out->queue = enc2out->queue;
 		}
 
-		dcache_clean_invalidate_by_addr((uint32_t *)enc2out, sizeof(enc2out_t) +32);
+		dcache_clean_invalidate_by_addr((uint32_t *)enc2out, sizeof(enc2out_t)+32);
+		dcache_clean_invalidate_by_addr((uint32_t *)v_adp->isp2out, sizeof(enc2out_t)+32);
 
-		ret = hal_voe_init(voe_cb, NULL, (u32)v_adp->voe_heap_addr, (u32)v_adp->voe_heap_size);
-		if (ret == NOK) {
+		ret = hal_voe_init(voe_cb,NULL, (u32)v_adp->voe_heap_addr, (u32)v_adp->voe_heap_size);
+		if(ret == NOK)
 			return ret;
-		}
 
 	} else {
 		printf("VOE already running \n");
@@ -654,6 +675,34 @@ int hal_video_set_voe(hal_video_adapter_t *v_adp, int heap_size, int queue)
 
 	return ret;
 
+}
+
+int hal_video_voe_close(hal_video_adapter_t *v_adp)
+{
+	enc2out_t *enc2out;
+	if(v_adp == NULL) {
+		v_adp = video_adapter;
+		if(video_adapter == NULL) {
+			printf("video adapter is disable\n");
+			return NOK;
+		}
+	}
+
+	enc2out =  v_adp->enc2out;
+
+	hal_voe_deinit();
+	if(v_adp->voe_heap_addr != NULL) {
+		free(v_adp->voe_heap_addr);
+		v_adp->voe_heap_addr = NULL;
+	}
+
+	if (enc2out->queue) {
+		vQueueDelete(enc2out->queue);
+		enc2out->queue = NULL;
+	}
+	video_adapter = NULL;
+
+	return OK;
 }
 
 int hal_video_froce_i(int ch)
@@ -674,6 +723,13 @@ int hal_video_yuv_out(int ch, int mode)
 	return 0;
 }
 
+int hal_video_dbg(int ch, int value)
+{
+	hal_voe_send2voe(VOE_DEBUG_CMD, ch, value);
+	return 0;
+}
+
+
 int hal_video_roi_mode(int ch)
 {
 	return OK;
@@ -687,7 +743,7 @@ int hal_video_roi_region(int ch, int x, int y, int width, int height, int value)
 
 	char *roi_table = (char *)roi->roi_table;
 	int i;
-	if (v_adp == NULL) {
+	if(v_adp == NULL) {
 		printf("video_adapter not ready\n");
 		return NOK;
 	}
@@ -696,8 +752,8 @@ int hal_video_roi_region(int ch, int x, int y, int width, int height, int value)
 		return NOK;
 	}
 
-	for (i = y ; i < y + height ; i++) {
-		memset(roi_table + x + (i * roi->table_width), value, width);
+	for(i=y ; i < y+height ; i++) {
+		memset(roi_table+x+(i*roi->table_width),value, width);
 	}
 	dcache_clean_invalidate_by_addr((uint32_t *)roi_table, roi->table_size);
 
@@ -706,9 +762,9 @@ int hal_video_roi_region(int ch, int x, int y, int width, int height, int value)
 
 
 	printf("-----\n");
-	for (line_idx = 0 ; line_idx < roi->table_height ; line_idx++) {
-		for (i = 0 ; i < roi->table_width ; i++) {
-			printf(" %2d", *(roi_table + i + (line_idx * roi->table_width)));
+	for(line_idx=0 ; line_idx < roi->table_height ; line_idx++) {
+		for(i=0 ; i < roi->table_width ; i++) {
+			printf(" %2d",*(roi_table+i+(line_idx*roi->table_width)));
 		}
 		printf("\n");
 	}
@@ -717,6 +773,94 @@ int hal_video_roi_region(int ch, int x, int y, int width, int height, int value)
 #endif
 
 	return OK;
+}
+
+int hal_video_osd_query(int ch, struct rts_video_osd2_attr **attr)
+{
+	i32 ret = OK;
+	commandLine_s *cml = video_adapter->cmd[ch];
+	if(cml->CodecType & (CODEC_HEVC | CODEC_H264 | CODEC_RGB )) {
+		dcache_clean_by_addr((uint32_t*)attr, sizeof(struct rts_video_osd2_attr));
+
+		hal_voe_send2voe(VOE_OSD_QUERY, ch, (u32)attr);
+		dcache_invalidate_by_addr((uint32_t*)attr, sizeof(struct rts_video_osd2_attr));
+
+		if(ret < 0){
+			printf("VOE_RELEASE_SLOT_CMD command fail %x\n",ret);
+			return NOK;
+		}
+	}
+	return OK;
+}
+
+int hal_video_osd_update(int ch, rt_osd2_info_st *osd2)
+{
+	i32 ret = OK;
+	//u32 *mem = (u32*)osd2;
+	commandLine_s *cml = video_adapter->cmd[ch];
+	if(cml->CodecType & (CODEC_HEVC | CODEC_H264 | CODEC_RGB )) {
+		dcache_clean_by_addr((uint32_t*)osd2, sizeof(rt_osd2_info_st));
+
+		hal_voe_send2voe(VOE_OSD_UPDATE, (u32)osd2, NULL);
+		dcache_invalidate_by_addr((uint32_t*)osd2, sizeof(rt_osd2_info_st));
+
+		if(ret < 0){
+			printf("VOE_RELEASE_SLOT_CMD command fail %x\n",ret);
+			return NOK;
+		}
+	}
+	return OK;
+}
+
+int hal_video_osd_enable(int ch, rt_osd2_info_st *osd2, bool en)
+{
+	i32 ret = OK;
+	commandLine_s *cml = video_adapter->cmd[ch];
+	if(cml->CodecType & (CODEC_HEVC | CODEC_H264 | CODEC_RGB )) {
+		dcache_clean_by_addr((uint32_t*)osd2, sizeof(rt_osd2_info_st));
+
+		hal_voe_send2voe(VOE_OSD_ENABLE, (u32)osd2, en);
+		dcache_invalidate_by_addr((uint32_t*)osd2, sizeof(rt_osd2_info_st));
+
+		if(ret < 0){
+			printf("VOE_RELEASE_SLOT_CMD command fail %x\n",ret);
+			return NOK;
+		}
+	}
+	return OK;
+}
+
+int hal_video_i2c_read(struct rts_isp_i2c_reg *reg)
+{
+	i32 ret = OK;
+	__attribute__((aligned(32))) struct rts_isp_i2c_reg r;
+
+	r.addr = reg->addr;
+
+	dcache_clean_invalidate_by_addr((uint32_t*)&r, sizeof(struct rts_isp_i2c_reg));
+	ret = hal_voe_send2voe(VOE_I2C_READ, (u32)&r, NULL);
+	dcache_clean_invalidate_by_addr((uint32_t*)&r, sizeof(struct rts_isp_i2c_reg));
+
+	reg->addr = r.addr;
+	reg->data = r.data;
+
+
+	return ret;
+}
+
+int hal_video_i2c_write(struct rts_isp_i2c_reg *reg)
+{
+	i32 ret = OK;
+	__attribute__((aligned(32))) struct rts_isp_i2c_reg r;
+
+	r.addr = reg->addr;
+	r.data = reg->data;
+
+	dcache_clean_invalidate_by_addr((uint32_t*)&r, sizeof(struct rts_isp_i2c_reg));
+	ret = hal_voe_send2voe(VOE_I2C_WRITE, (u32)&r, NULL);
+	dcache_clean_invalidate_by_addr((uint32_t*)&r, sizeof(struct rts_isp_i2c_reg));
+
+	return ret;
 }
 
 
@@ -728,7 +872,7 @@ int hal_video_osd_region(int ch, int x, int y, int width, int height, int value)
 
 	char *roi_table = (char *)roi->roi_table;
 	int i;
-	if (v_adp == NULL) {
+	if(v_adp == NULL) {
 		printf("video_adapter not ready\n");
 		return NOK;
 	}
@@ -737,8 +881,8 @@ int hal_video_osd_region(int ch, int x, int y, int width, int height, int value)
 		return NOK;
 	}
 
-	for (i = y ; i < y + height ; i++) {
-		memset(roi_table + x + (i * roi->table_width), value, width);
+	for(i=y ; i < y+height ; i++) {
+		memset(roi_table+x+(i*roi->table_width),value, width);
 	}
 	dcache_clean_invalidate_by_addr((uint32_t *)roi_table, roi->table_size);
 
@@ -756,7 +900,7 @@ int hal_video_obj_region(obj_ctrl_s *obj_r, int ch)
 {
 	dcache_clean_invalidate_by_addr((uint32_t *)obj_r, sizeof(obj_ctrl_s) + 32); //(addr aligned to 32-byte boundary)
 	//dcache_clean_invalidate();
-	hal_voe_send2voe(VOE_OBJECT_REGION_CMD, (u32)obj_r, ch);
+	hal_voe_send2voe(VOE_OBJ_REGION_CMD, (u32)obj_r, ch);
 	return OK;
 }
 
@@ -770,7 +914,7 @@ int hal_video_str_parsing(char *str, hal_video_adapter_t *v_adp)
 	commandLine_s *cml;
 	file_argv = cmd_arg;
 	if (file_argv == NULL) {
-		printf("file_argv malloc fail on %s\n", __func__);
+		printf("file_argv malloc fail on %s\n",__func__);
 		return NOK;
 
 	}
@@ -814,10 +958,10 @@ int hal_video_str_parsing(char *str, hal_video_adapter_t *v_adp)
 	cml->ch = ch;
 	if ((strncmp(str, "hevc", 4) == 0) || (strncmp(str, "h264", 4) == 0)) { // hevc/h264
 		if (strncmp(str, "hevc", 4) == 0) {
-			cml->CodecEnable |= CODEC_HEVC;
+			cml->CodecType |= CODEC_HEVC;
 			cml->outputFormat = VCENC_VIDEO_CODEC_HEVC;
 		} else {
-			cml->CodecEnable |= CODEC_H264;
+			cml->CodecType |= CODEC_H264;
 			cml->outputFormat = VCENC_VIDEO_CODEC_H264;
 		}
 		if (parameter_enc_get(file_argc, (char **)file_argv, cml)) {
@@ -826,29 +970,29 @@ int hal_video_str_parsing(char *str, hal_video_adapter_t *v_adp)
 		}
 	} else if (strncmp(str, "jpeg", 4) == 0) {
 		/* Parse command line parameters */
-		cml->CodecEnable |= CODEC_JPEG;
+		cml->CodecType |= CODEC_JPEG;
 		if (parameter_jpg_get(file_argc, (char **)file_argv, cml) != 0) {
 			printf("Input parameter error\n");
 			return NOK;
 		}
 	} else if (strncmp(str, "nv12", 4) == 0) {
-		cml->CodecEnable |= CODEC_NV12;
+		cml->CodecType |= CODEC_NV12;
 		cml->outputFormat = VCENC_VIDEO_CODEC_NV12;
 		if (parameter_enc_get(file_argc, (char **)file_argv, cml)) {
 			printf("Input parameter error\n");
 			return NOK;
 		}
 	} else if (strncmp(str, "rgb", 3) == 0) {
-		cml->CodecEnable |= CODEC_RGB;
-		//cml->outputFormat = VCENC_VIDEO_CODEC_RGB;
+		cml->CodecType |= CODEC_RGB;
+		cml->outputFormat = VCENC_VIDEO_CODEC_RGB;
 
 		if (parameter_enc_get(file_argc, (char **)file_argv, cml)) {
 			printf("Input parameter error\n");
 			return NOK;
 		}
 	} else if (strncmp(str, "nv16", 4) == 0) {
-		cml->CodecEnable |= CODEC_NV16;
-		//cml->outputFormat = VCENC_VIDEO_CODEC_NV16;
+		cml->CodecType |= CODEC_NV16;
+		cml->outputFormat = VCENC_VIDEO_CODEC_NV16;
 
 		if (parameter_enc_get(file_argc, (char **)file_argv, cml)) {
 			printf("Input parameter error\n");
@@ -860,7 +1004,7 @@ int hal_video_str_parsing(char *str, hal_video_adapter_t *v_adp)
 	}
 	return ch;
 }
-int hal_video_cmd_reset(hal_video_adapter_t *v_adp, int ch)
+int hal_video_cmd_reset( hal_video_adapter_t *v_adp,int ch)
 {
 	default_parameter(v_adp->cmd[ch]);
 	return OK;
@@ -911,18 +1055,23 @@ int hal_video_cb_register(hal_video_adapter_t *v_adp
 						  , u32 arg
 						  , int ch)
 {
-	v_adp->out_cb = output_cb;
+	v_adp->out_cb[ch] = output_cb;
 	v_adp->ctx[ch] = arg;
 	return OK;
 }
 
-int hal_video_isp_ctrl(int ctrl_id, int set_flag, int value)
+int hal_video_isp_ctrl(int ctrl_id, int set_flag, int* value)
 {
-	int ret;
-	if (set_flag == 0) {
-		ret = hal_voe_send2voe(VOE_ISP_CTRL_GET_CMD, ctrl_id, 0x0);
+	int ret = 0;
+	int __attribute__ ((aligned (32))) share_buf[32];
+	if ( set_flag == 0 ) {
+		hal_voe_send2voe(VOE_ISP_CTRL_GET_CMD, ctrl_id, &share_buf[0]);
+		dcache_invalidate_by_addr((uint32_t *)&share_buf[0], 32);
+		*value = share_buf[0];
+		//ret = (g_pvoe_adpt.voe_send_message &0xFF);
 	} else {
-		ret = hal_voe_send2voe(VOE_ISP_CTRL_SET_CMD, ctrl_id, value);
+		hal_voe_send2voe(VOE_ISP_CTRL_SET_CMD, ctrl_id, *value);
+		//ret = (g_pvoe_adpt.voe_send_message&0xFF);
 	}
 	return ret;
 }
@@ -931,10 +1080,21 @@ int hal_video_isp_tuning(int tuning_req, struct isp_tuning_cmd *tuning_cmd)
 {
 	int ret;
 
-	dcache_clean_invalidate_by_addr((uint32_t *)tuning_cmd, sizeof(struct isp_tuning_cmd) + 32); //(addr aligned to 32-byte boundary)
+	dcache_clean_invalidate_by_addr((uint32_t *)tuning_cmd, IQ_CMD_DATA_SIZE);
 	//dcache_clean_invalidate();
 	ret = hal_voe_send2voe(tuning_req, (u32)tuning_cmd, 0x0);
-
+	dcache_invalidate_by_addr((uint32_t *)tuning_cmd, IQ_CMD_DATA_SIZE);
+	return ret;
+}
+int hal_video_isp_set_rawfmt(int ch, uint32_t rawfmt)
+{
+	i32 ret = OK;
+	commandLine_s *cml = video_adapter->cmd[ch];
+	if( (cml->CodecType & CODEC_NV16) != 0 ) {
+		hal_voe_send2voe(VOE_ISP_SET_RAWFMTE_CMD, ch, rawfmt);
+	} else {
+		printf("isp raw only support NV16 format \n");
+	}
 	return ret;
 }
 
