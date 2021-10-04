@@ -465,8 +465,8 @@ vipnn_depoly_error:
 void vipnn_hardware_init(void)
 {
 	hal_sys_peripheral_en(NN_SYS, ENABLE);
-	//hal_sys_set_clk(NN_SYS, NN_500M);
-	hal_sys_set_clk(NN_SYS, NN_250M);
+	hal_sys_set_clk(NN_SYS, NN_500M);
+	//hal_sys_set_clk(NN_SYS, NN_250M);
 	dbg_printf("hal_rtl_sys_get_clk %x \n", hal_sys_get_clk(NN_SYS));
 	nn_hw_version();
 
