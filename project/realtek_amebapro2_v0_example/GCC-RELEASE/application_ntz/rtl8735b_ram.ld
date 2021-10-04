@@ -76,6 +76,8 @@ __eram_end__		= ORIGIN(DDR) + LENGTH(DDR);
 
 __voe_code_size__   = LENGTH(VOE);
 
+__nn_eram_start__   = ORIGIN(NN);
+__nn_eram_end__     = ORIGIN(NN) + LENGTH(NN);
 
 SECTIONS
 {

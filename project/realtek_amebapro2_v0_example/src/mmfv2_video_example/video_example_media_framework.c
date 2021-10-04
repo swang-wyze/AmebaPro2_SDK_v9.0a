@@ -112,8 +112,12 @@ static void example_mmf2_video_surport()
 	// V1 parameter change
 	//mmf2_video_example_v1_param_change_init();
 
-	// NN inference -> RTSP (V)
-	mmf2_example_vipnn_rtsp_init();
+	// RGB -> NN inference
+    // H264 -> RTSP (V)
+	//mmf2_example_vipnn_rtsp_init();
+    
+    // ARRAY (Image) -> NN inference
+    //mmf2_example_array_vipnn_init();
 }
 
 void video_example_main(void *param)

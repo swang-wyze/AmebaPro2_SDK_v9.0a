@@ -134,10 +134,10 @@ nn_data_param_t roi_wvga = {
 		.height = 480,
 		.rgb = 1,
 		.roi = {
-			.xmin = (640 - 416) / 2,
-			.ymin = (480 - 416) / 2,
-			.xmax = (640 + 416) / 2,
-			.ymax = (480 + 416) / 2,
+			.xmin = 0, //(640 - 416) / 2,
+			.ymin = 0, //(480 - 416) / 2,
+			.xmax = 640, //(640 + 416) / 2,
+			.ymax = 480, //(480 + 416) / 2,
 		}
 	}
 };
@@ -236,7 +236,7 @@ static void rgbshot_control_thread(void *param)
 	int shanpshot_time = 1000 / NN_EXCUTE_FPS;
 	vTaskDelay(shanpshot_time);
 	while (1) {
-		mm_module_ctrl(video_rgb_ctx, CMD_VIDEO_YUV, 1);
+		mm_module_ctrl(video_rgb_ctx, CMD_VIDEO_YUV, 2);
 		vTaskDelay(shanpshot_time);
 	}
 }
@@ -302,7 +302,7 @@ void mmf2_example_vipnn_rtsp_init(void)
 		rt_printf("video open fail\n\r");
 		goto mmf2_example_vnn_rtsp_fail;
 	}
-	mm_module_ctrl(video_rgb_ctx, CMD_VIDEO_YUV, 1);
+	mm_module_ctrl(video_rgb_ctx, CMD_VIDEO_YUV, 2);
 #else
 	array_t array;
 	array.data_addr = (uint32_t) testRGB_640x360;
