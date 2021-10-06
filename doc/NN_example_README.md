@@ -71,6 +71,11 @@ Note: If you don't have a pre-trained YOLO model, you can use the model given in
 
 use the Image tool to download the model bin to the flash with offest **0x300000**
 
+Trigger AmebaPro2 into download mode and follow the step in figure
+
+<p align="center"> <img src="https://user-images.githubusercontent.com/56305789/136130368-9d3aac7d-65f1-4691-8b8f-a244710a5dad.png" alt="test image size" height="50%" width="50%"></p>
+
+
 ## Validation
 
 ### Configure WiFi connection and check log
@@ -156,6 +161,4 @@ Then, open VLC and create a network stream with URL: rtsp://192.168.x.xx:554
 
 If everything works fine, you should see the object detection result on VLC player.
 
-![car_yolo](https://user-images.githubusercontent.com/56305789/136002827-1317982e-cec6-4e30-9aa7-45e4ad873407.JPG)
-
-
+<p align="center"> <img src="https://user-images.githubusercontent.com/56305789/136002827-1317982e-cec6-4e30-9aa7-45e4ad873407.JPG" alt="test image size" height="80%" width="80%"></p>
