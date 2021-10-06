@@ -10,6 +10,19 @@ set (prj_root "${CMAKE_CURRENT_SOURCE_DIR}/../..")
 set (sdk_root "${CMAKE_CURRENT_SOURCE_DIR}/../../../..")
 set(app_ntz application.ntz)
 
+# check system is LINUX 
+if(UNIX AND NOT APPLE)
+    set(LINUX TRUE)
+    message(STATUS "Build LINUX")
+endif()
+
+# set elf2bin
+if (LINUX)
+    set(ELF2BIN ${prj_root}/GCC-RELEASE/elf2bin.linux)
+else()
+    set(ELF2BIN ${prj_root}/GCC-RELEASE/elf2bin.exe)
+endif()
+
 set(freertos "freertos_v202012.00")
 set(lwip "lwip_v2.1.2")
 
@@ -772,13 +785,13 @@ add_custom_command(TARGET ${app_ntz} POST_BUILD
 	#COMMAND mkdir info
 	#COMMAND mv *.{i,s} info
 	
-	#COMMAND ${prj_root}/GCC-RELEASE/elf2bin.exe convert ${prj_root}/GCC-RELEASE/amebapro2_partition.json PARTITIONTABLE
+	#COMMAND ${ELF2BIN} convert ${prj_root}/GCC-RELEASE/amebapro2_partition.json PARTITIONTABLE
 	
 	COMMAND cp ${prj_root}/GCC-RELEASE/keycfg.json keycfg.json
 	COMMAND cp ${prj_root}/GCC-RELEASE/partition.json partition.json
 	COMMAND cp ${prj_root}/GCC-RELEASE/amebapro2_firmware.json amebapro2_firmware.json
-	COMMAND ${prj_root}/GCC-RELEASE/elf2bin.exe keygen keycfg.json
-	COMMAND ${prj_root}/GCC-RELEASE/elf2bin.exe convert amebapro2_firmware.json FIRMWARE
+	COMMAND ${ELF2BIN} keygen keycfg.json
+	COMMAND ${ELF2BIN} convert amebapro2_firmware.json FIRMWARE
 	COMMAND rm -rf output && mkdir output
 	COMMAND cp firmware_ntz.bin output
 	COMMAND cp ${app_ntz}.nm.map output
