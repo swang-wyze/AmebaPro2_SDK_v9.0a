@@ -25,8 +25,17 @@ git clone https://github.com/sychouwk/AmebaPro2_SDK_v9.0a.git
 
 - GCC build on Linux: 
   - please run the following command to prepare linux toolchain before see 1.1.3 in AmebaPro2 application note
-```
-cd <AmebaPro2_SDK>/tools
-cat asdk-8.4.0-linux-newlib-build-3578-x86_64.tar.bz2.* | tar jxvf -
-```
-
+  ```
+  cd <AmebaPro2_SDK>/tools
+  cat asdk-8.4.0-linux-newlib-build-3578-x86_64.tar.bz2.* | tar jxvf -
+  ```
+  
+### Release Note
+- v9.0a
+  1. First release for 8735b.
+	
+- v9.0b
+  1. VOE FW upgrade to v0.4.0.4
+  2. Support sensor ps5258
+  3. Support build on Linux
+  4. Optimize BT HCI driver 
