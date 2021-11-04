@@ -10,6 +10,7 @@ list (
     "${sdk_root}/component/at_cmd"
     "${sdk_root}/component/example"
     "${sdk_root}/component/network"
+    "${sdk_root}/component/network/cJSON"
     "${sdk_root}/component/soc/8735b/cmsis/cmsis-core/include"
     "${sdk_root}/component/soc/8735b/cmsis/rtl8735b/lib/include"
     "${sdk_root}/component/soc/8735b/cmsis/rtl8735b/include"

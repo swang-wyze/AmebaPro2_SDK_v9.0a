@@ -219,6 +219,8 @@ list(
 	#http
 	${sdk_root}/component/network/httpc/httpc_tls.c
 	${sdk_root}/component/network/httpd/httpd_tls.c
+	#cJSON
+	${sdk_root}/component/network/cJSON/cJSON.c
 )
 
 #lwip
@@ -375,6 +377,7 @@ list(
 	${sdk_root}/component/media/mmfv2/module_array.c
 	${sdk_root}/component/media/mmfv2/module_vipnn.c
 	${sdk_root}/component/example/media_framework/mmf2_example_array_vipnn_init.c
+    ${sdk_root}/component/example/media_framework/mmf2_example_file_vipnn_tester.c
 	${prj_root}/src/mmfv2_video_example/mmf2_video_example_vipnn_rtsp_init.c
 )
 endif()
@@ -414,6 +417,9 @@ list(
 	${sdk_root}/component/media/mmfv2/module_rtp.c
     ${sdk_root}/component/media/mmfv2/module_opusc.c
 	${sdk_root}/component/media/mmfv2/module_opusd.c
+
+	${sdk_root}/component/media/mmfv2/module_fileloader.c
+	${sdk_root}/component/media/mmfv2/module_filesaver.c
 )
 
 #UVCD AUTO TEST

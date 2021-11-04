@@ -11,6 +11,7 @@
 #include "mmf2_module.h"
 #include "osdep_service.h"
 #include "module_vipnn.h"
+#include "avcodec.h"
 
 #include "nn_api.h"
 #include "ssd_post_process.h"
@@ -48,6 +49,7 @@ int vipnn_handle(void *p, void *input, void *output)
 {
 	vipnn_ctx_t *ctx = (vipnn_ctx_t *)p;
 	mm_queue_item_t *input_item = (mm_queue_item_t *)input;
+	mm_queue_item_t *output_item = (mm_queue_item_t *)output;
 	void *data;
 	uint32_t file_size;
 	uint32_t buff_size;
@@ -129,6 +131,39 @@ int vipnn_handle(void *p, void *input, void *output)
 		printf("NN_FPS = %0.2f, %d %d\n\r", nn_fps, nn_count, xTaskGetTickCount() - nn_time0);
 	}
 
+	/*------------------------------------------------------*/
+
+	if (ctx->module_out_en) {
+		VIPNN_OUT_BUFFER out_next;
+		out_next.vipnn_out_tensor_num = ctx->output_count;
+		for (int i = 0; i < ctx->output_count; i++) {
+			out_next.vipnn_out_tensor[i] = out_tensor[i];
+			out_next.vipnn_out_tensor_size[i] = ctx->params.model->output_param.dim[i].size[0] * ctx->params.model->output_param.dim[i].size[1] *
+												ctx->params.model->output_param.dim[i].size[2];
+			switch (ctx->vip_param_out[i].quant_format) {
+			case VIP_BUFFER_QUANTIZE_DYNAMIC_FIXED_POINT:
+				out_next.quant_format[i] = VIP_BUFFER_QUANTIZE_DYNAMIC_FIXED_POINT;
+				out_next.quant_data[i].dfp.fixed_point_pos = ctx->vip_param_out[i].quant_data.dfp.fixed_point_pos;
+				break;
+			case VIP_BUFFER_QUANTIZE_TF_ASYMM:
+				out_next.quant_format[i] = VIP_BUFFER_QUANTIZE_TF_ASYMM;
+				out_next.quant_data[i].affine.scale = ctx->vip_param_out[i].quant_data.affine.scale;
+				out_next.quant_data[i].affine.zeroPoint = ctx->vip_param_out[i].quant_data.affine.zeroPoint;
+				break;
+			default:
+				printf(", none-quant\n\r");
+			}
+		}
+		memcpy(&out_next.vipnn_res, post_res, sizeof(vipnn_res_t));
+
+		output_item->size = sizeof(out_next);
+		memcpy(output_item->data_addr, &out_next, output_item->size);
+		output_item->timestamp = input_item->timestamp;
+		output_item->type = AV_CODEC_ID_NN_RAW;
+
+		return output_item->size;
+	}
+
 	return 0;
 }
 
@@ -181,6 +216,9 @@ int vipnn_control(void *p, int cmd, int arg)
 		ctx->post_process = (vipnn_postproc_t)arg;
 		break;
 	case CMD_VIPNN_GET_HWVER:
+		break;
+	case CMD_VIPNN_SET_OUTPUT:
+		ctx->module_out_en = (bool)arg;
 		break;
 	case CMD_VIPNN_APPLY:
 		ret = vipnn_deoply_network(ctx);
@@ -477,6 +515,10 @@ void vipnn_hardware_init(void)
 void *vipnn_create(void *parent)
 {
 	vipnn_ctx_t *ctx = (vipnn_ctx_t *)malloc(sizeof(vipnn_ctx_t));
+	memset(ctx, 0, sizeof(vipnn_ctx_t));
+
+	ctx->parent = parent;
+
 	vip_status_e status = VIP_SUCCESS;
 
 	vipnn_hardware_init();
@@ -502,6 +544,22 @@ vipnn_error:
 	return NULL;
 }
 
+void *vipnn_new_item(void *p)
+{
+	vipnn_ctx_t *ctx = (vipnn_ctx_t *)p;
+
+	return (void *)malloc(sizeof(VIPNN_OUT_BUFFER));
+}
+
+void *vipnn_del_item(void *p, void *d)
+{
+	(void)p;
+	if (d) {
+		free(d);
+	}
+	return NULL;
+}
+
 
 mm_module_t vipnn_module = {
 	.create = vipnn_create,
@@ -509,7 +567,10 @@ mm_module_t vipnn_module = {
 	.control = vipnn_control,
 	.handle = vipnn_handle,
 
-	.output_type = MM_TYPE_NONE,
+	.new_item = vipnn_new_item,
+	.del_item = vipnn_del_item,
+
+	.output_type = MM_TYPE_VSINK,
 	.module_type = MM_TYPE_VDSP,
 	.name = "vip nn"
 };

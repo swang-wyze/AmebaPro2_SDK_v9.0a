@@ -19,10 +19,12 @@
 #define CMD_VIPNN_SET_DISPPOST		MM_MODULE_CMD(0x0B)
 #define CMD_VIPNN_SET_SETOBJECT		MM_MODULE_CMD(0x0C)
 
-#define CMD_VIPNN_SET_MODEL_ID		MM_MODULE_CMD(0x0B)
+#define CMD_VIPNN_SET_MODEL_ID		MM_MODULE_CMD(0x0D)
 
 #define CMD_VIPNN_GET_PARAMS     	MM_MODULE_CMD(0x10)  // get parameter
 #define CMD_VIPNN_GET_HWVER     	MM_MODULE_CMD(0x11)
+
+#define CMD_VIPNN_SET_OUTPUT     	MM_MODULE_CMD(0x15)
 
 #define CMD_VIPNN_APPLY				MM_MODULE_CMD(0x20)  // for hardware module
 
@@ -142,6 +144,8 @@ typedef struct vipnn_ctx_s {
 
 	disp_postprcess_t disp_postproc;
 
+	bool module_out_en;
+
 } vipnn_ctx_t;
 
 #define MAX_DETECT_OBJ_NUM 30
@@ -155,6 +159,24 @@ typedef struct vipnn_res_s {
 		objdetect_res_t od_res;
 	};
 } vipnn_res_t;
+
+typedef struct {
+	uint32_t    vipnn_out_tensor_num;
+	void        *vipnn_out_tensor[6];
+	uint32_t    vipnn_out_tensor_size[6];
+	vipnn_res_t vipnn_res;
+	uint32_t    quant_format[6];
+	union {
+		struct {
+			vip_int32_t fixed_point_pos;
+		} dfp;
+		struct {
+			vip_float_t        scale;
+			vip_int32_t        zeroPoint;
+		} affine;
+	}
+	quant_data[6];
+} VIPNN_OUT_BUFFER;
 
 extern mm_module_t vipnn_module;
 

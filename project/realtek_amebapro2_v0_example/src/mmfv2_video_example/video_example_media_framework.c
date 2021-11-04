@@ -118,6 +118,9 @@ static void example_mmf2_video_surport()
     
     // ARRAY (Image) -> NN inference
     //mmf2_example_array_vipnn_init();
+
+	// NN image from SD card
+	//mmf2_example_file_vipnn_tester();
 }
 
 void video_example_main(void *param)
