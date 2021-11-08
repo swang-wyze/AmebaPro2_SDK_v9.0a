@@ -70,7 +70,7 @@ int filesaver_handle(void *p, void *input, void *output)
 			switch (pre_tensor_out.quant_format[i]) {
 			case VIP_BUFFER_QUANTIZE_TF_ASYMM:   /* uint8 --> float32 */
 				float_tensor = (float *)malloc(pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float));
-				for (int k = 0; k < pre_tensor_out.vipnn_out_tensor_size[0]; k++) {
+				for (int k = 0; k < pre_tensor_out.vipnn_out_tensor_size[i]; k++) {
 					float_tensor[k] = (*((uint8_t *)pre_tensor_out.vipnn_out_tensor[i] + k) - pre_tensor_out.quant_data[i].affine.zeroPoint) *
 									  pre_tensor_out.quant_data[i].affine.scale;
 				}
@@ -78,14 +78,14 @@ int filesaver_handle(void *p, void *input, void *output)
 				break;
 			case VIP_BUFFER_QUANTIZE_DYNAMIC_FIXED_POINT:   /* int16 --> float32 */
 				float_tensor = (float *)malloc(pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float) / sizeof(int16_t));
-				for (int k = 0; k < (pre_tensor_out.vipnn_out_tensor_size[0]/sizeof(int16_t)); k++) {
+				for (int k = 0; k < (pre_tensor_out.vipnn_out_tensor_size[i] / sizeof(int16_t)); k++) {
 					float_tensor[k] = (float)(*((int16_t *)pre_tensor_out.vipnn_out_tensor[i] + k)) / ((float)(1 << pre_tensor_out.quant_data[i].dfp.fixed_point_pos));
 				}
 				SD_file_save_file(sd_fn_out, (char *)float_tensor, pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float) / sizeof(int16_t));
 				break;
 			default:   /* float16 --> float32 */
 				float_tensor = (float *)malloc(pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float) / sizeof(__fp16));
-				for (int k = 0; k < (pre_tensor_out.vipnn_out_tensor_size[0]/sizeof(__fp16)); k++) {
+				for (int k = 0; k < (pre_tensor_out.vipnn_out_tensor_size[i] / sizeof(__fp16)); k++) {
 					float_tensor[k] = (float)(*((__fp16 *)pre_tensor_out.vipnn_out_tensor[i] + k));
 				}
 				SD_file_save_file(sd_fn_out, (char *)float_tensor, pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float) / sizeof(__fp16));
