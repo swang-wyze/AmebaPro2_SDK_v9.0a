@@ -255,8 +255,8 @@ float box_iou(box_t *a, box_t *b)
 
 int nms_comparator(const void *pa, const void *pb)
 {
-	box_t *a = (box_t *)pa;
-	box_t *b = (box_t *)pb;
+	box_t *a = *(box_t **)pa;
+	box_t *b = *(box_t **)pb;
 	float diff = a->prob - b->prob;
 	if (diff < 0) {
 		return 1;
