@@ -53,7 +53,7 @@ int incb = 0;
 int ch1framecnt = 0;
 int ch2framecnt = 0;
 int rgb_lock = 0;
-int isp_ch_buf_num[5] = {2,2,2,2,1};
+int isp_ch_buf_num[5] = {2,2,2,2,2};
 
 void video_frame_complete_cb(void *param1, void  *param2, uint32_t arg)
 {
