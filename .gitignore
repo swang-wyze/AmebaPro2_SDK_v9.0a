@@ -1,0 +1,18 @@
+etc/
+tmp/
+bkp/
+dataset_*/
+_*
+*.exe
+*.pdb
+*.suo
+*.dll
+*.pyd
+*.so
+.vscode/
+.vs/
+#wyze model
+y3_32M_pcpp*
+/component/bluetooth/zephyr_stack/stack/out/*
+/component/lwip/lwip_v2.1.2/out/*
+/component/soc/8735b/lib/freertos_plus_posix/out/*
