@@ -12,6 +12,7 @@ _*
 .vscode/
 .vs/
 #wyze model
+*y3_32M_pcpp*
 y3_32M_pcpp*
 /component/bluetooth/zephyr_stack/stack/out/*
 /component/lwip/lwip_v2.1.2/out/*

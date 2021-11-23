@@ -120,13 +120,13 @@ static void example_mmf2_video_surport()
     //mmf2_example_array_vipnn_init();
 
 	// NN image from SD card
-	//mmf2_example_file_vipnn_tester();
+	mmf2_example_file_vipnn_tester();
 }
 
 void video_example_main(void *param)
 {
 #if CONFIG_EXAMPLE_MEDIA_VIDEO
-	wifi_common_init();
+	//wifi_common_init();
 
 	example_mmf2_video_surport();
 

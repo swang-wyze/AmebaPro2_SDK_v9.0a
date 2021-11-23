@@ -14,15 +14,15 @@
 #include "avcodec.h"
 #include <cJSON.h>
 
-#include "model_yolov3t.h"
+#include "model_y3_32M_pcpp.h"
 
-#define NUMBER_OF_COCO_CLASS        80
+#define NUMBER_OF_COCO_CLASS        4
 #define MAX_COCO_NAME_STRING_SIZE   20
 static char coco_name[NUMBER_OF_COCO_CLASS][MAX_COCO_NAME_STRING_SIZE] =
-{   "person",    "bicycle",    "car",    "motorbike",    "aeroplane",    "bus",    "train",    "truck",    "boat",    "traffic light",    "fire hydrant",    "stop sign",    "parking meter",    "bench",    "bird",    "cat",    "dog",    "horse",    "sheep",    "cow",    "elephant",    "bear",    "zebra",    "giraffe",    "backpack",    "umbrella",    "handbag",    "tie",    "suitcase",    "frisbee",    "skis",    "snowboard",    "sports ball",    "kite",    "baseball bat",    "baseball glove",    "skateboard",    "surfboard",    "tennis racket",    "bottle",    "wine glass",    "cup",    "fork",    "knife",    "spoon",    "bowl",    "banana",    "apple",    "sandwich",    "orange",    "broccoli",    "carrot",    "hot dog",    "pizza",    "donut",    "cake",    "chair",    "sofa",    "pottedplant",    "bed",    "diningtable",    "toilet",    "tvmonitor",    "laptop",    "mouse",    "remote",    "keyboard",    "cell phone",    "microwave",    "oven",    "toaster",    "sink",    "refrigerator",    "book",    "clock",    "vase",    "scissors",    "teddy bear",    "hair drier",    "toothbrush"};
+{   "person",    "car",    "pet",    "package"};
 
-#define TEST_IMAGE_WIDTH	416   /* Fix me */
-#define TEST_IMAGE_HEIGHT	416   /* Fix me */
+#define TEST_IMAGE_WIDTH	640   /* Fix me */
+#define TEST_IMAGE_HEIGHT	352   /* Fix me */
 nn_data_param_t roi_tester = {
 	.img = {
 		.width = TEST_IMAGE_WIDTH,
@@ -54,10 +54,10 @@ static mm_context_t *vipnn_ctx              = NULL;
 static mm_siso_t *siso_fileloader_vipnn     = NULL;
 static mm_siso_t *siso_vipnn_filesaver      = NULL;
 
-#define TEST_FILE_PATH_PREFIX   "test_bmp/image"            /* Fix me */   // test_bmp/image-0001.bmp, test_bmp/image-0002.bmp, test_bmp/image-0003.bmp ...
-#define TEST_FILE_NUM           10                          /* Fix me */
+#define TEST_FILE_PATH_PREFIX   "wyze_data/test_bmp"            /* Fix me */   // test_bmp/image-0001.bmp, test_bmp/image-0002.bmp, test_bmp/image-0003.bmp ...
+#define TEST_FILE_NUM           11818                        /* Fix me */
 
-#define FILE_OUT_PATH_PREFIX    "yolo_result/yolo_result"   /* Fix me */
+#define FILE_OUT_PATH_PREFIX    "wyze_data/yolo_result"   /* Fix me */
 
 void mmf2_example_file_vipnn_tester(void)
 {
@@ -80,7 +80,7 @@ void mmf2_example_file_vipnn_tester(void)
 	// VIPNN
 	vipnn_ctx = mm_module_open(&vipnn_module);
 	if (vipnn_ctx) {
-		mm_module_ctrl(vipnn_ctx, CMD_VIPNN_SET_MODEL, (int)&yolov3_tiny);
+		mm_module_ctrl(vipnn_ctx, CMD_VIPNN_SET_MODEL, (int)&y3_32M_pcpp);
 		mm_module_ctrl(vipnn_ctx, CMD_VIPNN_SET_IN_PARAMS, (int)&roi_tester);
 		mm_module_ctrl(vipnn_ctx, CMD_VIPNN_SET_DISPPOST, NULL);
 		mm_module_ctrl(vipnn_ctx, CMD_VIPNN_SET_OUTPUT, 1);  //enable module output
@@ -144,16 +144,16 @@ static int BMP24toRGB888planar_ConvertInPlace(void *pbuffer, void *pbuffer_size)
 
 	int data_offset;
 	memcpy(&data_offset, &bmp2rgb_buffer[10], sizeof(int));
-	printf("\r\nstart offset of data: %d \n", data_offset);
+	//printf("\r\nstart offset of data: %d \n", data_offset);
 
 	int data_size = *bmp2rgb_size - data_offset;
-	printf("data_size: %d\n ", data_size);
+	//printf("data_size: %d\n ", data_size);
 
 	int test_im_w, test_im_h;
 	memcpy(&test_im_w, &bmp2rgb_buffer[18], sizeof(int));
 	memcpy(&test_im_h, &bmp2rgb_buffer[22], sizeof(int));
 
-	printf("\r\nbmp file info: w:%d, h:%d, %s\r\n", test_im_w, test_im_h, (test_im_h > 0 ? "Bottom2Top" : "Top2Bottom"));
+	//printf("\r\nbmp file info: w:%d, h:%d, %s\r\n", test_im_w, test_im_h, (test_im_h > 0 ? "Bottom2Top" : "Top2Bottom"));
 
 	char *top_down_data_buf = (char *)malloc(data_size);
 	if (test_im_h > 0) { /* Bottom2Top */
@@ -209,8 +209,8 @@ static char *nn_get_object_json_format(void *p, void *img_param, int frame_id, c
 	cJSON_AddItemToObject(YoloJSObject, "filename", cJSON_CreateString(file_name));
 	cJSON_AddItemToObject(YoloJSObject, "objects", yolo_obj_JSArray = cJSON_CreateArray());
 
-	int im_w = im->img.width;
-	int im_h = im->img.height;
+	int im_w = 1920;//im->img.width;
+	int im_h = 1080;// im->img.height;
 
 	printf("object num = %d\r\n", res->obj_num);
 	if (res->obj_num > 0) {
@@ -221,7 +221,7 @@ static char *nn_get_object_json_format(void *p, void *img_param, int frame_id, c
 			int bottom_x = (int)(res->result[6 * i + 4] * im_w) > im_w ? im_w : (int)(res->result[6 * i + 4] * im_w);
 			int bottom_y = (int)(res->result[6 * i + 5] * im_h) > im_h ? im_h : (int)(res->result[6 * i + 5] * im_h);
 
-			printf("%d,c%d:%d %d %d %d\n\r", i, (int)(res->result[6 * i]), top_x, top_y, bottom_x, bottom_y);
+			//printf("%d,c%d:%d %d %d %d %f\n\r", i, (int)(res->result[6 * i]), top_x, top_y, bottom_x, bottom_y, (float)res->result[6 * i + 1]);
 
 			cJSON_AddItemToArray(yolo_obj_JSArray, yolo_obj_JSObject = cJSON_CreateObject());
 			cJSON_AddItemToObject(yolo_obj_JSObject, "class_id", cJSON_CreateNumber((int)res->result[6 * i ]));

@@ -368,7 +368,7 @@ if(BUILD_VIPNN)
 #NN MODEL
 list(
 	APPEND app_ntz_sources
-	${prj_root}/src/test_model/model_yolov3t.c
+	${prj_root}/src/test_model/model_y3_32M_pcpp.c
 )
 #NN example
 list(

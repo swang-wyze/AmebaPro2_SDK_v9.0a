@@ -42,7 +42,8 @@ void fileloader_handler(void *p)
 			memset(sd_fn_in, 0x00, sizeof(sd_fn_in));
 
 			if (ctx->params.codec_id == AV_CODEC_ID_BMP24) {
-				snprintf(sd_fn_in, sizeof(sd_fn_in), "%s-%04d.bmp", ctx->sd_dataset_file_path_in, load_file_count + 1);
+				
+				snprintf(sd_fn_in, sizeof(sd_fn_in), "%s_%d/image-%05d.bmp", ctx->sd_dataset_file_path_in, load_file_count/1000, load_file_count + 1);
 				SD_file_load_file(&test_data_addr, &test_data_len, sd_fn_in);
 
 				if (ctx->decode_in_place) {
@@ -115,10 +116,9 @@ static int SD_file_load_file(uint32_t *pFrame, uint32_t *pSize, char *frameFileP
 	char path_all[64];
 	memset(path_all, 0, sizeof(path_all));
 	snprintf(path_all, sizeof(path_all), "%s%s", fatfs_sd.drv, frameFilePath);
-
 	res = f_open(&m_file, path_all, FA_OPEN_ALWAYS | FA_READ | FA_WRITE);
 	int file_size = f_size(&m_file);
-	printf("\r\nfile_size: %d bytes.\r\n", file_size);
+	//printf("\r\nfile_size: %d bytes.\r\n", file_size);
 	char *file_buf = malloc(file_size);
 	if (file_buf == NULL) {
 		printf("\r\nfile malloc fail!\r\n");
@@ -129,7 +129,7 @@ static int SD_file_load_file(uint32_t *pFrame, uint32_t *pSize, char *frameFileP
 			f_lseek(&m_file, 0);
 			printf("\r\nRead error.\n");
 		}
-		printf("Read %d bytes.\n", br);
+		//printf("Read %d bytes.\n", br);
 	} while (br < file_size);
 	f_close(&m_file);
 

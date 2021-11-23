@@ -48,51 +48,51 @@ int filesaver_handle(void *p, void *input, void *output)
 		memcpy(&pre_tensor_out, input_item->data_addr, input_item->size);
 
 		/* save yolo json result */
-		snprintf(sd_fn_out, sizeof(sd_fn_out), "%s_%d.json", ctx->sd_dataset_file_path_out, saver_count + 1);
+		snprintf(sd_fn_out, sizeof(sd_fn_out), "%s_%d/yolo_result_%d.json", ctx->sd_dataset_file_path_out, saver_count/1000, saver_count + 1);
 		if (ctx->parser.nn.nn_get_json_res) {
 			char *json_format_out = ctx->parser.nn.nn_get_json_res(&pre_tensor_out.vipnn_res, ctx->params.img_in_param, saver_count + 1, sd_fn_out);
 			//printf("\r\njson_format_out: %s\r\n", json_format_out);
 			SD_file_save_file(sd_fn_out, json_format_out, strlen(json_format_out));
 		}
 
-		/* save tensor */
-		for (int i = 0; i < pre_tensor_out.vipnn_out_tensor_num; i++) {
-			/* save raw tensor */
-			memset(&sd_fn_out[0], 0x00, sizeof(sd_fn_out));
-			snprintf(sd_fn_out, sizeof(sd_fn_out), "%s_out_tensor%d_uint8_%d.bin", ctx->sd_dataset_file_path_out, i, saver_count + 1);
-			SD_file_save_file(sd_fn_out, (char *)pre_tensor_out.vipnn_out_tensor[i], pre_tensor_out.vipnn_out_tensor_size[i]); /* raw tensor*/
-
-#if 0
-			/* save float32 tensor */
-			memset(&sd_fn_out[0], 0x00, sizeof(sd_fn_out));
-			snprintf(sd_fn_out, sizeof(sd_fn_out), "%s_out_tensor%d_float32_%d.bin", ctx->sd_dataset_file_path_out, i, saver_count + 1);
-			float *float_tensor;
-			switch (pre_tensor_out.quant_format[i]) {
-			case VIP_BUFFER_QUANTIZE_TF_ASYMM:   /* uint8 --> float32 */
-				float_tensor = (float *)malloc(pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float));
-				for (int k = 0; k < pre_tensor_out.vipnn_out_tensor_size[i]; k++) {
-					float_tensor[k] = (*((uint8_t *)pre_tensor_out.vipnn_out_tensor[i] + k) - pre_tensor_out.quant_data[i].affine.zeroPoint) *
-									  pre_tensor_out.quant_data[i].affine.scale;
-				}
-				SD_file_save_file(sd_fn_out, (char *)float_tensor, pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float));
-				break;
-			case VIP_BUFFER_QUANTIZE_DYNAMIC_FIXED_POINT:   /* int16 --> float32 */
-				float_tensor = (float *)malloc(pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float) / sizeof(int16_t));
-				for (int k = 0; k < (pre_tensor_out.vipnn_out_tensor_size[i] / sizeof(int16_t)); k++) {
-					float_tensor[k] = (float)(*((int16_t *)pre_tensor_out.vipnn_out_tensor[i] + k)) / ((float)(1 << pre_tensor_out.quant_data[i].dfp.fixed_point_pos));
-				}
-				SD_file_save_file(sd_fn_out, (char *)float_tensor, pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float) / sizeof(int16_t));
-				break;
-			default:   /* float16 --> float32 */
-				float_tensor = (float *)malloc(pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float) / sizeof(__fp16));
-				for (int k = 0; k < (pre_tensor_out.vipnn_out_tensor_size[i] / sizeof(__fp16)); k++) {
-					float_tensor[k] = (float)(*((__fp16 *)pre_tensor_out.vipnn_out_tensor[i] + k));
-				}
-				SD_file_save_file(sd_fn_out, (char *)float_tensor, pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float) / sizeof(__fp16));
-			}
-			free(float_tensor);
-#endif
-		}
+//		/* save tensor */
+//		for (int i = 0; i < pre_tensor_out.vipnn_out_tensor_num; i++) {
+//			/* save raw tensor */
+//			memset(&sd_fn_out[0], 0x00, sizeof(sd_fn_out));
+//			snprintf(sd_fn_out, sizeof(sd_fn_out), "%s_out_tensor%d_uint8_%d.bin", ctx->sd_dataset_file_path_out, i, saver_count + 1);
+//			SD_file_save_file(sd_fn_out, (char *)pre_tensor_out.vipnn_out_tensor[i], pre_tensor_out.vipnn_out_tensor_size[i]); /* raw tensor*/
+//
+//#if 0
+//			/* save float32 tensor */
+//			memset(&sd_fn_out[0], 0x00, sizeof(sd_fn_out));
+//			snprintf(sd_fn_out, sizeof(sd_fn_out), "%s_out_tensor%d_float32_%d.bin", ctx->sd_dataset_file_path_out, i, saver_count + 1);
+//			float *float_tensor;
+//			switch (pre_tensor_out.quant_format[i]) {
+//			case VIP_BUFFER_QUANTIZE_TF_ASYMM:   /* uint8 --> float32 */
+//				float_tensor = (float *)malloc(pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float));
+//				for (int k = 0; k < pre_tensor_out.vipnn_out_tensor_size[i]; k++) {
+//					float_tensor[k] = (*((uint8_t *)pre_tensor_out.vipnn_out_tensor[i] + k) - pre_tensor_out.quant_data[i].affine.zeroPoint) *
+//									  pre_tensor_out.quant_data[i].affine.scale;
+//				}
+//				SD_file_save_file(sd_fn_out, (char *)float_tensor, pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float));
+//				break;
+//			case VIP_BUFFER_QUANTIZE_DYNAMIC_FIXED_POINT:   /* int16 --> float32 */
+//				float_tensor = (float *)malloc(pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float) / sizeof(int16_t));
+//				for (int k = 0; k < (pre_tensor_out.vipnn_out_tensor_size[i] / sizeof(int16_t)); k++) {
+//					float_tensor[k] = (float)(*((int16_t *)pre_tensor_out.vipnn_out_tensor[i] + k)) / ((float)(1 << pre_tensor_out.quant_data[i].dfp.fixed_point_pos));
+//				}
+//				SD_file_save_file(sd_fn_out, (char *)float_tensor, pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float) / sizeof(int16_t));
+//				break;
+//			default:   /* float16 --> float32 */
+//				float_tensor = (float *)malloc(pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float) / sizeof(__fp16));
+//				for (int k = 0; k < (pre_tensor_out.vipnn_out_tensor_size[i] / sizeof(__fp16)); k++) {
+//					float_tensor[k] = (float)(*((__fp16 *)pre_tensor_out.vipnn_out_tensor[i] + k));
+//				}
+//				SD_file_save_file(sd_fn_out, (char *)float_tensor, pre_tensor_out.vipnn_out_tensor_size[i] * sizeof(float) / sizeof(__fp16));
+//			}
+//			free(float_tensor);
+//#endif
+//		}
 	}
 
 	saver_count++;
@@ -127,7 +127,7 @@ static int SD_file_save_file(char *file_name, char *data_buf, int data_buf_size)
 			printf("Write error.\n");
 			return 0;
 		}
-		printf("\r\nWrite %d bytes.\n", bw);
+		//printf("\r\nWrite %d bytes.\n", bw);
 	} while (bw < data_buf_size);
 
 	free(WRBuf);

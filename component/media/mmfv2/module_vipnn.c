@@ -138,10 +138,8 @@ int vipnn_handle(void *p, void *input, void *output)
 		out_next.vipnn_out_tensor_num = ctx->output_count;
 		for (int i = 0; i < ctx->output_count; i++) {
 			out_next.vipnn_out_tensor[i] = out_tensor[i];
-			out_next.vipnn_out_tensor_size[i] = 1;
-			for (int k = 0; k < ctx->params.model->output_param.dim[i].num; k++) {
-				out_next.vipnn_out_tensor_size[i] = out_next.vipnn_out_tensor_size[i] * ctx->params.model->output_param.dim[i].size[k];
-			}
+			out_next.vipnn_out_tensor_size[i] = ctx->params.model->output_param.dim[i].size[0] * ctx->params.model->output_param.dim[i].size[1] *
+												ctx->params.model->output_param.dim[i].size[2];
 			switch (ctx->vip_param_out[i].quant_format) {
 			case VIP_BUFFER_QUANTIZE_DYNAMIC_FIXED_POINT:
 				out_next.quant_format[i] = VIP_BUFFER_QUANTIZE_DYNAMIC_FIXED_POINT;
@@ -221,7 +219,6 @@ int vipnn_control(void *p, int cmd, int arg)
 		break;
 	case CMD_VIPNN_SET_OUTPUT:
 		ctx->module_out_en = (bool)arg;
-		((mm_context_t *)ctx->parent)->module->output_type = MM_TYPE_VSINK;
 		break;
 	case CMD_VIPNN_APPLY:
 		ret = vipnn_deoply_network(ctx);
@@ -573,7 +570,7 @@ mm_module_t vipnn_module = {
 	.new_item = vipnn_new_item,
 	.del_item = vipnn_del_item,
 
-	.output_type = MM_TYPE_NONE,
+	.output_type = MM_TYPE_VSINK,
 	.module_type = MM_TYPE_VDSP,
 	.name = "vip nn"
 };

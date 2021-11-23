@@ -87,8 +87,8 @@ static rtsp2_params_t rtsp2_v1_params = {
 
 #define NN_CHANNEL 4
 #define NN_RESOLUTION VIDEO_VGA //VIDEO_WVGA
-#define NN_FPS 10   /* if NN target fps<=5, then set it to 5 */
-#define NN_GOP 10
+#define NN_FPS 5
+#define NN_GOP 5
 #define NN_BPS 256*1024
 #define NN_EXCUTE_FPS 5
 
@@ -229,6 +229,19 @@ static void nn_set_object(void *p, void *img_param)
 
 }
 
+#if V4_SIM==0
+static TaskHandle_t rgbshot_thread = NULL;
+static void rgbshot_control_thread(void *param)
+{
+	int shanpshot_time = 1000 / NN_EXCUTE_FPS;
+	vTaskDelay(shanpshot_time);
+	while (1) {
+		mm_module_ctrl(video_rgb_ctx, CMD_VIDEO_YUV, 2);
+		vTaskDelay(shanpshot_time);
+	}
+}
+#endif
+
 void mmf2_example_vipnn_rtsp_init(void)
 {
 
@@ -356,6 +369,12 @@ void mmf2_example_vipnn_rtsp_init(void)
 		goto mmf2_example_vnn_rtsp_fail;
 	}
 	rt_printf("siso_array_vipnn started\n\r");
+#endif
+
+#if V4_SIM==0
+	if (xTaskCreate(rgbshot_control_thread, ((const char *)"rgbshot_store"), 4096, NULL, tskIDLE_PRIORITY + 1, &rgbshot_thread) != pdPASS) {
+		printf("\n\r%s xTaskCreate failed", __FUNCTION__);
+	}
 #endif
 
 	return;

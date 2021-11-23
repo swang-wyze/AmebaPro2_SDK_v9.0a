@@ -148,7 +148,7 @@ typedef struct vipnn_ctx_s {
 
 } vipnn_ctx_t;
 
-#define MAX_DETECT_OBJ_NUM 30
+#define MAX_DETECT_OBJ_NUM 100
 typedef struct objdetect_res_s {
 	float result[MAX_DETECT_OBJ_NUM * 6];
 	int obj_num;
