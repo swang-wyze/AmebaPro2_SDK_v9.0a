@@ -12,7 +12,7 @@
 
 static float anchor_all[6][2] = {
 	{81, 82}, {135, 169}, {344, 319},		// 13x13
-	{10, 14}, {23, 27}, {37, 58},			// 26x26
+	{23, 27}, {37, 58}, {81, 82},			// 26x26
 };
 
 static float u8_to_f(uint8_t val, uint8_t zero_p, float scale)
